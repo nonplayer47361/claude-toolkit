@@ -22,6 +22,12 @@ claude-toolkit/
 └── docs/            # 작성 가이드 및 배포 문서
 ```
 
+## 포함된 스킬
+
+| 스킬 | 설명 | 설치 |
+|------|------|------|
+| `cli-agent-team` | Claude를 오케스트레이터로, Codex·agy를 서브 에이전트로 하는 다중 에이전트 루프. 아이디어 회의부터 배포까지 커버 | `.\scripts\install-skill.ps1 -SkillName cli-agent-team` |
+
 ## 주요 명령어
 
 ```powershell
