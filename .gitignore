@@ -3,3 +3,4 @@ node_modules/
 .env
 .env.local
 mcp-servers/**/node_modules/
+_agent_reports/
