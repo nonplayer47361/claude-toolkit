@@ -146,7 +146,11 @@ echo "[검사 3/4] 자동 검증 명령어"
 if [ ! -f "$AGENT_ROLES" ]; then
     echo "  ⏭️  AGENT_ROLES.md 없음 — 건너뜀"
 else
-    VERIFY_CMDS=$(extract_section "$AGENT_ROLES" "^## 자동 검증 명령어" | grep -v "^<!--" | grep '^[a-zA-Z].*:' || true)
+    # 불릿(`- `) 있는 형식과 없는 형식 모두 지원: "- test: npm test" → "test: npm test"
+    VERIFY_CMDS=$(extract_section "$AGENT_ROLES" "^## 자동 검증 명령어" \
+        | grep -v "^<!--" \
+        | sed 's/^- //' \
+        | grep '^[a-zA-Z].*:' || true)
 
     if [ -z "$VERIFY_CMDS" ]; then
         echo "  ⏭️  AGENT_ROLES.md에 실행 가능한 검증 명령어 없음 — 건너뜀"
@@ -157,6 +161,10 @@ else
             label=$(echo "$cmdline" | cut -d: -f1 | xargs)
             cmd=$(echo "$cmdline" | cut -d: -f2- | xargs)
             [ -z "$cmd" ] && continue
+            # "(없음" 으로 시작하는 명령어는 정의되지 않은 것으로 간주하고 건너뜀
+            case "$cmd" in
+                \(없음*|\(none*) echo "  ⏭️  $label: 정의 없음 — 건너뜀"; continue ;;
+            esac
 
             echo "  >>  $label: $cmd"
             if (cd "$PROJECT_DIR" && eval "$cmd" >"$TMPOUT" 2>&1); then
