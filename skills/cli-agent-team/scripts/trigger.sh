@@ -69,11 +69,25 @@ while [ -f "$PENDING" ]; do
 done
 echo "[trigger] ${AGENT} 수신 완료 — 작업 완료 대기 중..."
 
-# 완료(DONE) 신호 대기 (작업은 수분~수십분 걸릴 수 있음)
+# 완료(DONE/ERROR/STALE) 신호 대기 (작업은 수분~수십분 걸릴 수 있음)
 while true; do
-  if [ -f "$STATUS" ] && grep -q "DONE" "$STATUS"; then
-    echo "[trigger] ${AGENT} → ${TASK_ID} 완료"
-    exit 0
+  if [ -f "$STATUS" ]; then
+    STATUS_VAL=$(cat "$STATUS" 2>/dev/null | tr -d '[:space:]')
+    case "$STATUS_VAL" in
+      DONE)
+        echo "[trigger] ${AGENT} → ${TASK_ID} 완료"
+        exit 0
+        ;;
+      ERROR)
+        echo "ERROR: ${AGENT} → ${TASK_ID} 실패 (dispatch.sh 오류)" >&2
+        exit 1
+        ;;
+      STALE)
+        echo "ERROR: ${AGENT} → ${TASK_ID} 잔류 상태 감지 (이전 세션에서 중단됨)" >&2
+        echo "  trigger.sh를 다시 실행하면 데몬이 새로 처리합니다." >&2
+        exit 2
+        ;;
+    esac
   fi
   sleep 5
 done

@@ -43,8 +43,14 @@ param(
 
     [string]$ProjectDir = (Get-Location).Path,
 
-    [string]$SkillDir = (Join-Path $HOME ".claude\skills\cli-agent-team")
+    [string]$SkillDir = ""
 )
+
+# SkillDir 자동 감지: 이 스크립트는 <SkillDir>/scripts/agent-watch.ps1 위치에 있음
+# $HOME이 빈 문자열로 resolve되는 PS 5.1 엣지케이스 우회
+if (-not $SkillDir) {
+    $SkillDir = Split-Path (Split-Path $MyInvocation.MyCommand.Path -Parent) -Parent
+}
 
 Set-Location $ProjectDir
 
@@ -56,6 +62,16 @@ New-Item -ItemType Directory -Force -Path $reportsDir | Out-Null
 
 # 데몬 실행 마커 등록 (trigger.sh가 이 파일로 데몬 존재 확인)
 "RUNNING" | Set-Content $daemonMarker -Encoding UTF8
+
+# 이전 세션에서 중단된 IN_PROGRESS 상태 파일 정리
+# (컴퓨터 강제 종료 등으로 데몬이 죽으면 상태 파일이 IN_PROGRESS에 멈춤)
+Get-ChildItem "$reportsDir" -Filter ".status_*_$Agent" -ErrorAction SilentlyContinue | ForEach-Object {
+    $content = Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue
+    if ($content -match "IN_PROGRESS") {
+        [System.IO.File]::WriteAllText($_.FullName, "STALE`n")
+        Write-Host "[$Agent] [RECOVER] 잔류 IN_PROGRESS 정리: $($_.Name) → STALE"
+    }
+}
 
 Write-Host ""
 $dispatchScript = Join-Path $SkillDir "scripts/dispatch.sh"
@@ -104,10 +120,17 @@ try {
 
             # dispatch.sh를 스킬 절대경로로 호출 (프로젝트 폴더 기준 아님)
             & $bashExe "$dispatchScriptBash" $Agent $taskId $AuthMode $ProjectDir $mode
+            $exitCode = $LASTEXITCODE
 
-            [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "DONE`n")
-            Write-Host ""
-            Write-Host "[$Agent] [DONE] 완료: $taskId"
+            if ($exitCode -eq 0) {
+                [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "DONE`n")
+                Write-Host ""
+                Write-Host "[$Agent] [DONE] 완료: $taskId"
+            } else {
+                [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "ERROR`n")
+                Write-Host ""
+                Write-Host "[$Agent] [ERROR] 실패 (exit $exitCode): $taskId"
+            }
             Write-Host "[$Agent] ── 다음 지시 대기 중 ──"
             Write-Host ""
         }

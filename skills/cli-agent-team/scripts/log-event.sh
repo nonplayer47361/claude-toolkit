@@ -24,8 +24,9 @@ SIZE="${3:?size 필요 (소형 | 중형 | 대형 | 분석)}"
 RESULT="${4:?result 필요 (\"✅ 완료\" | \"⚠️ 리밋\" | \"❌ 오류\" | \"🔁 폴백\")}"
 SESSION_COUNT="${5:?session-count 필요 (숫자)}"
 MEMO="${6:-}"
+PROJECT_DIR="${7:-$(pwd)}"
 
-LOG_FILE="_agent_reports/LOG.md"
+LOG_FILE="$PROJECT_DIR/_agent_reports/LOG.md"
 
 if [ ! -f "$LOG_FILE" ]; then
     echo "오류: $LOG_FILE 가 없습니다." >&2

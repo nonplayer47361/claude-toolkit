@@ -27,6 +27,9 @@ TASK_ID="${2:?task-id required}"
 AUTH_MODE="${3:?auth-mode required: full|limited}"
 DIR="${4:-$(pwd)}"
 MODE="${5:-execute}"
+# CLI 타임아웃 — execute/feedback은 30분, review는 10분 (agy --print-timeout보다 여유 있게)
+DISPATCH_TIMEOUT="${DISPATCH_TIMEOUT:-30m}"
+[ "$MODE" = "review" ] && DISPATCH_TIMEOUT="${REVIEW_TIMEOUT:-10m}"
 
 TASK_DIR="_agent_reports/${TASK_ID}"
 TASK_FILE="${TASK_DIR}/TASK.md"
@@ -51,21 +54,33 @@ else
   exit 1
 fi
 
+run_with_timeout() {
+  # timeout이 없는 환경(일부 Git Bash) 대비 — 있으면 감싸고 없으면 그냥 실행
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$DISPATCH_TIMEOUT" "$@"
+    local ec=$?
+    [ $ec -eq 124 ] && echo "ERROR: dispatch timed out after $DISPATCH_TIMEOUT" >&2
+    return $ec
+  else
+    "$@"
+  fi
+}
+
 case "$CLI" in
   codex)
     case "$AUTH_MODE" in
       full)
         if [ "$MODE" = "feedback" ]; then
-          codex exec resume --last --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_with_timeout codex exec resume --last --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
         else
-          codex exec --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_with_timeout codex exec --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       limited)
         if [ "$MODE" = "feedback" ]; then
-          codex exec resume --last "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_with_timeout codex exec resume --last "$MSG" 2>&1 | tee "$LOG_FILE"
         else
-          codex exec "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_with_timeout codex exec "$MSG" 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       *)
@@ -78,16 +93,16 @@ case "$CLI" in
     case "$AUTH_MODE" in
       full)
         if [ "$MODE" = "feedback" ]; then
-          agy --continue --print "$MSG" --dangerously-skip-permissions --print-timeout 20m 2>&1 | tee "$LOG_FILE"
+          run_with_timeout agy --continue --print "$MSG" --dangerously-skip-permissions --print-timeout 20m 2>&1 | tee "$LOG_FILE"
         else
-          agy --print "$MSG" --dangerously-skip-permissions --print-timeout 20m 2>&1 | tee "$LOG_FILE"
+          run_with_timeout agy --print "$MSG" --dangerously-skip-permissions --print-timeout 20m 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       limited)
         if [ "$MODE" = "feedback" ]; then
-          agy --continue --print "$MSG" --print-timeout 20m 2>&1 | tee "$LOG_FILE"
+          run_with_timeout agy --continue --print "$MSG" --print-timeout 20m 2>&1 | tee "$LOG_FILE"
         else
-          agy --print "$MSG" --print-timeout 20m 2>&1 | tee "$LOG_FILE"
+          run_with_timeout agy --print "$MSG" --print-timeout 20m 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       *)

@@ -32,6 +32,15 @@ DISPATCH_SCRIPT="$SKILL_DIR/scripts/dispatch.sh"
 mkdir -p "$REPORTS_DIR"
 echo "RUNNING" > "$DAEMON_MARKER"
 
+# 이전 세션에서 중단된 IN_PROGRESS 상태 파일 정리
+for f in "$REPORTS_DIR"/.status_*_"$AGENT"; do
+    [ -f "$f" ] || continue
+    if grep -q "IN_PROGRESS" "$f" 2>/dev/null; then
+        printf "STALE\n" > "$f"
+        echo "[$AGENT] [RECOVER] 잔류 IN_PROGRESS 정리: $(basename "$f") → STALE"
+    fi
+done
+
 echo ""
 echo "[$AGENT] 대기 시작"
 echo "[$AGENT] 프로젝트: $PROJECT_DIR"
