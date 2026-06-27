@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   CLI 에이전트를 "Claude 지시 대기" 모드로 실행한다.
   VS Code 전용 터미널 패널에서 실행하면, Claude가 TASK 파일을 업데이트할 때마다
@@ -68,8 +68,18 @@ $dispatchScriptBash = $dispatchScript -replace '\\', '/'
 if ($dispatchScriptBash -match '^([A-Za-z]):(.+)$') {
     $dispatchScriptBash = "/$($Matches[1].ToLower())$($Matches[2])"
 }
+# bash 실행 파일 자동 탐지 (PowerShell PATH에 bash가 없는 경우 대비)
+$bashExe = "bash"
+$bashCandidates = @(
+    "C:\Program Files\Git\bin\bash.exe",
+    "C:\Program Files\Git\usr\bin\bash.exe",
+    "C:\Windows\System32\bash.exe"
+)
+foreach ($c in $bashCandidates) {
+    if (Test-Path $c) { $bashExe = $c; break }
+}
 
-Write-Host "[$Agent] 🟢 대기 시작 (양방향 실시간 모드)"
+Write-Host "[$Agent] [START] 대기 시작 (양방향 실시간 모드)"
 Write-Host "[$Agent] 프로젝트 : $ProjectDir"
 Write-Host "[$Agent] 권한     : $AuthMode"
 Write-Host "[$Agent] 트리거   : $pendingFile"
@@ -86,18 +96,18 @@ try {
             Remove-Item $pendingFile -Force
 
             $statusFile = "$reportsDir\.status_${taskId}_$Agent"
-            "IN_PROGRESS" | Set-Content $statusFile -Encoding UTF8
+            [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "IN_PROGRESS`n")
 
-            Write-Host "[$Agent] 📥 수신: $taskId ($mode)"
-            Write-Host "[$Agent] ▶  실행 중..."
+            Write-Host "[$Agent] [RECV] 수신: $taskId ($mode)"
+            Write-Host "[$Agent] >> 실행 중..."
             Write-Host ""
 
             # dispatch.sh를 스킬 절대경로로 호출 (프로젝트 폴더 기준 아님)
-            bash "$dispatchScriptBash" $Agent $taskId $AuthMode $ProjectDir $mode
+            & $bashExe "$dispatchScriptBash" $Agent $taskId $AuthMode $ProjectDir $mode
 
-            "DONE" | Set-Content $statusFile -Encoding UTF8
+            [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "DONE`n")
             Write-Host ""
-            Write-Host "[$Agent] ✅ 완료: $taskId"
+            Write-Host "[$Agent] [DONE] 완료: $taskId"
             Write-Host "[$Agent] ── 다음 지시 대기 중 ──"
             Write-Host ""
         }
@@ -107,5 +117,7 @@ try {
 finally {
     Remove-Item $daemonMarker -ErrorAction SilentlyContinue
     Write-Host ""
-    Write-Host "[$Agent] 🔴 종료됨"
+    Write-Host "[$Agent] [STOP] 종료됨"
 }
+
+

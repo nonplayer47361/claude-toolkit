@@ -20,6 +20,8 @@ TASK_ID="${2:?task-id required}"
 MODE="${3:-execute}"
 DIR="${4:-$(pwd)}"
 
+cd "$DIR"
+
 REPORTS_DIR="_agent_reports"
 DAEMON_MARKER="${REPORTS_DIR}/.daemon_${AGENT}"
 PENDING="${REPORTS_DIR}/.pending_${AGENT}"
@@ -69,7 +71,7 @@ echo "[trigger] ${AGENT} 수신 완료 — 작업 완료 대기 중..."
 
 # 완료(DONE) 신호 대기 (작업은 수분~수십분 걸릴 수 있음)
 while true; do
-  if [ -f "$STATUS" ] && [ "$(cat "$STATUS")" = "DONE" ]; then
+  if [ -f "$STATUS" ] && grep -q "DONE" "$STATUS"; then
     echo "[trigger] ${AGENT} → ${TASK_ID} 완료"
     exit 0
   fi

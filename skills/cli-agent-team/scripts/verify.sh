@@ -42,23 +42,44 @@ if [ ! -f "$REPORT_FILE" ]; then
     exit 1
 fi
 
-# REPORT.md가 비어있는지 확인
 if [ ! -s "$REPORT_FILE" ]; then
     echo "❌ REPORT.md가 비어 있음"
     exit 1
 fi
 
+# ── 섹션 추출 헬퍼 ──────────────────────────────────────────────────
+# awk 대신 grep+tail+head 사용 — Windows Git Bash에서 awk 한글 패턴 미지원 우회
+extract_section() {
+    local file="$1"
+    local pattern="$2"   # grep -E 패턴 (한글 포함)
+    local start
+    start=$(grep -n -E "$pattern" "$file" 2>/dev/null | head -1 | cut -d: -f1)
+    [ -z "$start" ] && return 0
+    local after
+    after=$(tail -n "+$((start + 1))" "$file" | grep -n "^##[^#]" | head -1 | cut -d: -f1)
+    if [ -z "$after" ]; then
+        tail -n "+$((start + 1))" "$file"
+    else
+        tail -n "+$((start + 1))" "$file" | head -n "$((after - 1))"
+    fi
+}
+
 # ── 1. 스코프 초과 검사 ─────────────────────────────────────────────
 
 echo ""
-echo "[검사 1/3] 스코프 초과"
+echo "[검사 1/4] 스코프 초과"
 
-ALLOWED_SECTION=$(awk '/^## 허용 파일/,/^##[^#]/' "$TASK_FILE" 2>/dev/null | grep '^- ' | sed 's/^- //' || true)
+ALLOWED_SECTION=$(extract_section "$TASK_FILE" "^## 허용 파일" | grep '^- ' | sed 's/^- //' || true)
 
 if [ -z "$ALLOWED_SECTION" ]; then
     echo "  ⏭️  TASK.md에 '## 허용 파일' 없음 — 건너뜀"
 else
-    CHANGED=$(cd "$PROJECT_DIR" && git diff --name-only HEAD 2>/dev/null || true)
+    # 변경 파일 목록: 추적됨(HEAD diff) + 스테이지됨 + 미추적 신규 파일 모두 포함
+    CHANGED=$(cd "$PROJECT_DIR" && {
+        git diff --name-only HEAD 2>/dev/null || true
+        git diff --cached --name-only 2>/dev/null || true
+        git ls-files --others --exclude-standard 2>/dev/null || true
+    } | sort -u)
 
     if [ -z "$CHANGED" ]; then
         echo "  ⚠️  변경된 파일 없음 (git diff HEAD 기준)"
@@ -69,7 +90,9 @@ else
             MATCH=0
             while IFS= read -r allowed; do
                 [ -z "$allowed" ] && continue
-                if [[ "$changed_file" == "$allowed" ]] || [[ "$changed_file" == "$allowed/"* ]] || [[ "$changed_file" == "$allowed"* ]]; then
+                if [[ "$changed_file" == "$allowed" ]] || \
+                   [[ "$changed_file" == "$allowed/"* ]] || \
+                   [[ "$changed_file" == "$allowed"* ]]; then
                     MATCH=1
                     break
                 fi
@@ -90,12 +113,13 @@ fi
 # ── 2. AC 체크리스트 확인 ───────────────────────────────────────────
 
 echo ""
-echo "[검사 2/3] AC 체크리스트"
+echo "[검사 2/4] AC 체크리스트"
 
-AC_LINES=$(awk '/^## AC 체크리스트/,/^##[^#]/' "$REPORT_FILE" 2>/dev/null | grep '^\- \[' || true)
+# 한글(AC 체크리스트) 또는 영어(Acceptance Checklist) 모두 허용
+AC_LINES=$(extract_section "$REPORT_FILE" "^## (AC 체크리스트|Acceptance Checklist)" | grep '^\- \[' || true)
 
 if [ -z "$AC_LINES" ]; then
-    echo "  ❌ REPORT.md에 '## AC 체크리스트' 섹션 없음"
+    echo "  ❌ REPORT.md에 '## AC 체크리스트' (또는 Acceptance Checklist) 섹션 없음"
     FAILED=1
 else
     AC_FAIL=0
@@ -117,15 +141,15 @@ fi
 # ── 3. 자동 검증 명령어 ─────────────────────────────────────────────
 
 echo ""
-echo "[검사 3/3] 자동 검증 명령어"
+echo "[검사 3/4] 자동 검증 명령어"
 
 if [ ! -f "$AGENT_ROLES" ]; then
     echo "  ⏭️  AGENT_ROLES.md 없음 — 건너뜀"
 else
-    VERIFY_CMDS=$(awk '/^## 자동 검증 명령어/,/^##[^#]/' "$AGENT_ROLES" 2>/dev/null | grep '^[a-zA-Z].*:' || true)
+    VERIFY_CMDS=$(extract_section "$AGENT_ROLES" "^## 자동 검증 명령어" | grep -v "^<!--" | grep '^[a-zA-Z].*:' || true)
 
     if [ -z "$VERIFY_CMDS" ]; then
-        echo "  ⏭️  AGENT_ROLES.md에 '## 자동 검증 명령어' 없음 — 건너뜀"
+        echo "  ⏭️  AGENT_ROLES.md에 실행 가능한 검증 명령어 없음 — 건너뜀"
     else
         TMPOUT=$(mktemp)
         while IFS= read -r cmdline; do
@@ -134,7 +158,7 @@ else
             cmd=$(echo "$cmdline" | cut -d: -f2- | xargs)
             [ -z "$cmd" ] && continue
 
-            echo "  ▶  $label: $cmd"
+            echo "  >>  $label: $cmd"
             if (cd "$PROJECT_DIR" && eval "$cmd" >"$TMPOUT" 2>&1); then
                 echo "  ✅ $label 통과"
             else
@@ -152,19 +176,22 @@ fi
 echo ""
 echo "[검사 4/4] 완료 증거 파일"
 
-EVIDENCE_LINES=$(awk '/^## 완료 증거 파일/,/^##[^#]/' "$TASK_FILE" 2>/dev/null | grep '^- ' | sed 's/^- //' || true)
+EVIDENCE_LINES=$(extract_section "$TASK_FILE" "^## 완료 증거 파일" | grep '^- ' | sed 's/^- //' || true)
 
 if [ -z "$EVIDENCE_LINES" ]; then
     echo "  ⏭️  TASK.md에 '## 완료 증거 파일' 없음 — 건너뜀"
 else
     EV_FAIL=0
-    CHANGED_LIST=$(cd "$PROJECT_DIR" && git diff --name-only HEAD 2>/dev/null || true)
+    CHANGED_LIST=$(cd "$PROJECT_DIR" && {
+        git diff --name-only HEAD 2>/dev/null || true
+        git diff --cached --name-only 2>/dev/null || true
+        git ls-files --others --exclude-standard 2>/dev/null || true
+    } | sort -u)
 
     while IFS= read -r evline; do
         [ -z "$evline" ] && continue
-        # "src/foo.ts  수정됨" 또는 "src/bar.ts  생성됨" 형식 파싱
         evfile=$(echo "$evline" | awk '{print $1}')
-        evtype=$(echo "$evline" | awk '{print $2}')  # 수정됨 | 생성됨 (없으면 존재 여부만)
+        evtype=$(echo "$evline" | awk '{print $2}')
 
         FULL_PATH="$PROJECT_DIR/$evfile"
 

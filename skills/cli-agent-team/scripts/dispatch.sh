@@ -28,16 +28,22 @@ AUTH_MODE="${3:?auth-mode required: full|limited}"
 DIR="${4:-$(pwd)}"
 MODE="${5:-execute}"
 
-TASK_FILE="_agent_reports/${TASK_ID}/TASK.md"
+TASK_DIR="_agent_reports/${TASK_ID}"
+TASK_FILE="${TASK_DIR}/TASK.md"
+LOG_FILE="${TASK_DIR}/_${CLI}_stdout.log"
+
+# 실제 작업 디렉토리로 이동 (상대 경로가 올바르게 동작하도록)
+cd "$DIR"
+
 if [ ! -f "$TASK_FILE" ]; then
-  echo "ERROR: $TASK_FILE not found. Write the TASK.md before dispatching." >&2
+  echo "ERROR: $TASK_FILE not found (cwd=$(pwd)). Write the TASK.md before dispatching." >&2
   exit 1
 fi
 
 if [ "$MODE" = "review" ]; then
   MSG="BRIEF.md와 _agent_reports/${TASK_ID}/TASK.md를 읽고, 실행 전 검토 의견을 _agent_reports/${TASK_ID}/REVIEW.md에 작성해줘. 코드·파일은 건드리지 마세요. REVIEW.md 형식은 task-templates.md의 REVIEW.md 섹션을 참고해."
 elif [ "$MODE" = "execute" ]; then
-  MSG="_agent_reports/${TASK_ID}/TASK.md 읽고 시작해줘. 먼저 TODO.md에 하위작업 체크리스트를 작성하고, 다 끝나면 REPORT.md에 완료 보고서를 작성해줘."
+  MSG="_agent_reports/${TASK_ID}/TASK.md 읽고 시작해줘. 먼저 _agent_reports/${TASK_ID}/TODO.md에 하위작업 체크리스트를 작성하고, 다 끝나면 _agent_reports/${TASK_ID}/REPORT.md에 완료 보고서를 작성해줘. 소스 코드 파일은 TASK.md의 '## 허용 파일' 목록에 있는 것만 생성하거나 수정해줘."
 elif [ "$MODE" = "feedback" ]; then
   MSG="_agent_reports/${TASK_ID}/TASK.md와 _agent_reports/${TASK_ID}/FEEDBACK.md를 읽고, FEEDBACK.md에 지적된 사항만 수정해줘. 다른 부분은 건드리지 마세요. 완료 후 REPORT.md에 '## 수정 내역 (회차 N)' 절을 추가해서 무엇을 어떻게 고쳤는지 적어줘."
 else
@@ -50,18 +56,16 @@ case "$CLI" in
     case "$AUTH_MODE" in
       full)
         if [ "$MODE" = "feedback" ]; then
-          # 피드백 재배정: 기존 세션 이어가기 (컨텍스트 유지)
-          codex exec resume --last --approval-mode full-auto "$MSG"
+          codex exec resume --last --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
         else
-          codex exec --approval-mode full-auto -C "$DIR" "$MSG"
+          codex exec --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       limited)
-        # limited 모드에서는 승인 우회 없음. 비대화형 호출에서 멈출 수 있음 (의도된 마찰).
         if [ "$MODE" = "feedback" ]; then
-          codex exec resume --last "$MSG"
+          codex exec resume --last "$MSG" 2>&1 | tee "$LOG_FILE"
         else
-          codex exec -C "$DIR" "$MSG"
+          codex exec "$MSG" 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       *)
@@ -74,17 +78,16 @@ case "$CLI" in
     case "$AUTH_MODE" in
       full)
         if [ "$MODE" = "feedback" ]; then
-          # 피드백 재배정: --continue로 기존 세션 이어가기
-          agy --continue --print "$MSG" --dangerously-skip-permissions --print-timeout 20m
+          agy --continue --print "$MSG" --dangerously-skip-permissions --print-timeout 20m 2>&1 | tee "$LOG_FILE"
         else
-          agy --print "$MSG" --add-dir "$DIR" --dangerously-skip-permissions --print-timeout 20m
+          agy --print "$MSG" --dangerously-skip-permissions --print-timeout 20m 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       limited)
         if [ "$MODE" = "feedback" ]; then
-          agy --continue --print "$MSG" --print-timeout 20m
+          agy --continue --print "$MSG" --print-timeout 20m 2>&1 | tee "$LOG_FILE"
         else
-          agy --print "$MSG" --add-dir "$DIR" --print-timeout 20m
+          agy --print "$MSG" --print-timeout 20m 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       *)

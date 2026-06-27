@@ -78,8 +78,18 @@ echo ""
 echo "[검사 2/2] 허용 파일 충돌"
 
 get_allowed() {
-    local task_file="$1"
-    awk '/^## 허용 파일/,/^##[^#]/' "$task_file" 2>/dev/null | grep '^- ' | sed 's/^- //' || true
+    local file="$1"
+    # awk 한글 패턴 미지원(Windows Git Bash) 우회 — grep으로 시작 줄 찾고 tail+head로 추출
+    local start
+    start=$(grep -n "^## 허용 파일" "$file" 2>/dev/null | head -1 | cut -d: -f1)
+    [ -z "$start" ] && return 0
+    local after
+    after=$(tail -n "+$((start + 1))" "$file" | grep -n "^##[^#]" | head -1 | cut -d: -f1)
+    if [ -z "$after" ]; then
+        tail -n "+$((start + 1))" "$file" | grep '^- ' | sed 's/^- //' || true
+    else
+        tail -n "+$((start + 1))" "$file" | head -n "$((after - 1))" | grep '^- ' | sed 's/^- //' || true
+    fi
 }
 
 ALLOWED_1=$(get_allowed "$TASK_FILE_1")
