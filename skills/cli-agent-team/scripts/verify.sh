@@ -158,8 +158,9 @@ else
         TMPOUT=$(mktemp)
         while IFS= read -r cmdline; do
             [ -z "$cmdline" ] && continue
-            label=$(echo "$cmdline" | cut -d: -f1 | xargs)
-            cmd=$(echo "$cmdline" | cut -d: -f2- | xargs)
+            label=$(echo "$cmdline" | cut -d: -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            # xargs 대신 sed — xargs는 따옴표를 파싱해 eval 오류 유발
+            cmd=$(echo "$cmdline" | cut -d: -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             [ -z "$cmd" ] && continue
             # "(없음" 으로 시작하는 명령어는 정의되지 않은 것으로 간주하고 건너뜀
             case "$cmd" in
