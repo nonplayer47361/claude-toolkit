@@ -20,6 +20,12 @@ TASK_ID="${2:?task-id required}"
 MODE="${3:-execute}"
 DIR="${4:-$(pwd)}"
 
+# 타임아웃 설정 (테스트 시 환경변수로 단축 가능)
+# PICKUP_TIMEOUT: 데몬이 .pending 파일을 가져갈 때까지 대기 초 (기본 30)
+PICKUP_TIMEOUT="${PICKUP_TIMEOUT:-30}"
+# TASK_TIMEOUT_SECS: 작업 전체 완료 대기 초 (기본 5400 = 90분)
+TASK_TIMEOUT_SECS="${TASK_TIMEOUT:-5400}"
+
 cd "$DIR"
 
 REPORTS_DIR="_agent_reports"
@@ -60,8 +66,8 @@ WAIT=0
 while [ -f "$PENDING" ]; do
   sleep 1
   WAIT=$((WAIT + 1))
-  if [ $WAIT -ge 30 ]; then
-    echo "ERROR: ${AGENT} 데몬이 30초 안에 트리거를 수신하지 않았습니다." >&2
+  if [ "$WAIT" -ge "$PICKUP_TIMEOUT" ]; then
+    echo "ERROR: ${AGENT} 데몬이 ${PICKUP_TIMEOUT}초 안에 트리거를 수신하지 않았습니다." >&2
     echo "  agent-watch.ps1이 실행 중인지 확인하세요." >&2
     rm -f "$PENDING"
     exit 1
@@ -70,6 +76,7 @@ done
 echo "[trigger] ${AGENT} 수신 완료 — 작업 완료 대기 중..."
 
 # 완료(DONE/ERROR/STALE) 신호 대기 (작업은 수분~수십분 걸릴 수 있음)
+TASK_START=$(date +%s)
 while true; do
   if [ -f "$STATUS" ]; then
     STATUS_VAL=$(cat "$STATUS" 2>/dev/null | tr -d '[:space:]')
@@ -80,6 +87,8 @@ while true; do
         ;;
       ERROR)
         echo "ERROR: ${AGENT} → ${TASK_ID} 실패 (dispatch.sh 오류)" >&2
+        echo "  다시 trigger.sh를 실행하면 자동으로 재시도됩니다." >&2
+        echo "  (수동 상태 확인·초기화: scripts/reset-task.sh ${TASK_ID} ${AGENT})" >&2
         exit 1
         ;;
       STALE)
@@ -89,5 +98,15 @@ while true; do
         ;;
     esac
   fi
+
+  # 전체 작업 타임아웃: 데몬은 픽업했지만 dispatch.sh가 결과를 쓰지 않는 경우 방어
+  NOW=$(date +%s)
+  if [ "$((NOW - TASK_START))" -ge "$TASK_TIMEOUT_SECS" ]; then
+    echo "ERROR: ${TASK_ID} 작업이 ${TASK_TIMEOUT_SECS}초 내에 완료되지 않음." >&2
+    echo "  agent-watch.ps1이 여전히 실행 중인지, dispatch.sh 로그를 확인하세요." >&2
+    echo "  _agent_reports/${TASK_ID}/_${AGENT}_stdout.log" >&2
+    exit 3
+  fi
+
   sleep 5
 done

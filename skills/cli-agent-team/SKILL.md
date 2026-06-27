@@ -834,6 +834,8 @@ AGENT_ROLES.md가 단일 출처):
   **루프 실행**
   - `scripts/dispatch.sh` — CLI 직접 배정 (review | execute | feedback 모드)
   - `scripts/trigger.sh` — 데몬 모드에서 .pending 파일로 신호 전달
+    - `PICKUP_TIMEOUT=<초>` — 데몬 수신 대기 타임아웃 (기본 30초)
+    - `TASK_TIMEOUT=<초>` — 작업 전체 완료 타임아웃 (기본 5400초 = 90분)
   - `scripts/parallel-check.sh` — 두 태스크의 병렬 배정 안전 여부 판정
 
   **상태 관리**
@@ -841,5 +843,7 @@ AGENT_ROLES.md가 단일 출처):
 
   **검증·학습**
   - `scripts/verify.sh` — Phase 5 단계 6 자동 검증 (스코프·AC·테스트·증거파일 4종)
+  - `scripts/reset-task.sh` — ERROR/STALE 상태 수동 초기화 (trigger.sh 재실행으로 자동 처리됨; 수동 확인용)
+  - `scripts/run_failure_tests.sh` — 실패 시나리오 E2E 테스트 (배포 전 검증용 14개 시나리오)
   - `scripts/log-event.sh` — LOG.md 이벤트 행 추가 (리밋 시 [HOUR:XX] 태그 자동 포함)
   - `scripts/analyze-limits.sh` — 시간대별 리밋 패턴 분석 → 배정 에이전트 우선순위 조정

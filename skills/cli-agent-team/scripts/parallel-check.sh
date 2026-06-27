@@ -33,6 +33,23 @@ echo ""
 echo "[$TASK_ID_1 || $TASK_ID_2] parallel-check 시작"
 echo "$SEP"
 
+# ── 섹션 추출 헬퍼 ──────────────────────────────────────────────────
+# awk 한글 패턴 미지원(Windows Git Bash) 우회 — grep+tail+head 사용
+extract_section() {
+    local file="$1"
+    local pattern="$2"
+    local start
+    start=$(grep -n -E "$pattern" "$file" 2>/dev/null | head -1 | cut -d: -f1)
+    [ -z "$start" ] && return 0
+    local after
+    after=$(tail -n "+$((start + 1))" "$file" | grep -n "^## " | head -1 | cut -d: -f1)
+    if [ -z "$after" ]; then
+        tail -n "+$((start + 1))" "$file"
+    else
+        tail -n "+$((start + 1))" "$file" | head -n "$((after - 1))"
+    fi
+}
+
 # ── 전제 조건 ─────────────────────────────────────────────────────────
 for tid in "$TASK_ID_1" "$TASK_ID_2"; do
     tf="$PROJECT_DIR/_agent_reports/$tid/TASK.md"
@@ -51,23 +68,42 @@ check_prereq() {
     local task_id="$1"
     local task_file="$2"
 
-    # TASK.md에서 "선행:" 행 파싱
-    PREREQ=$(grep -E '^선행:' "$task_file" 2>/dev/null | head -1 | sed 's/^선행: *//' || true)
-    PREREQ="${PREREQ:-없음}"
+    local prereq_raw
+    prereq_raw=$(grep -E '^선행:' "$task_file" 2>/dev/null | head -1 | sed 's/^선행: *//' || true)
+    prereq_raw="${prereq_raw:-없음}"
 
-    if [ "$PREREQ" = "없음" ] || [ -z "$PREREQ" ]; then
+    # 괄호 안 설명 제거: "T002, T004 (모두 DONE 확인됨)" → "T002,T004"
+    local prereq_clean
+    prereq_clean=$(echo "$prereq_raw" | sed 's/([^)]*)//g' | tr -d ' ')
+
+    if [ "$prereq_clean" = "없음" ] || [ -z "$prereq_clean" ]; then
         echo "  ✅ $task_id: 선행 없음"
         return 0
     fi
 
-    # 선행이 있으면 PLAN.md에서 DONE 여부 확인
-    if grep -q "| *${PREREQ} *|.*DONE" "$PLAN_FILE" 2>/dev/null; then
-        echo "  ✅ $task_id: 선행 $PREREQ DONE 확인됨"
-        return 0
-    else
-        echo "  ❌ $task_id: 선행 $PREREQ 가 DONE이 아님 — 순차 실행 필요"
+    # PLAN.md가 없으면 확인 불가
+    if [ ! -f "$PLAN_FILE" ]; then
+        echo "  ⚠️  $task_id: PLAN.md 없음 — 선행 확인 불가, 순차 실행 권장"
         return 1
     fi
+
+    # PLAN.md "## 완료" 섹션에서 선행 task-id 검색
+    # 완료 섹션 포맷: "| T001 | 작업명 | 커밋해시 | 비고 |"
+    local done_content
+    done_content=$(extract_section "$PLAN_FILE" "^## 완료")
+
+    local all_done=1
+    # 쉼표로 구분된 task-id 목록을 순회
+    for prereq in $(echo "$prereq_clean" | tr ',' '\n' | grep -v '^$'); do
+        if echo "$done_content" | grep -q "| *${prereq} *|"; then
+            echo "  ✅ $task_id: 선행 $prereq 완료 확인됨"
+        else
+            echo "  ❌ $task_id: 선행 $prereq 가 완료 섹션에 없음 — 순차 실행 필요"
+            all_done=0
+        fi
+    done
+
+    [ "$all_done" -eq 1 ] && return 0 || return 1
 }
 
 check_prereq "$TASK_ID_1" "$TASK_FILE_1" || FAILED=1
