@@ -5,6 +5,8 @@ description: "외부 CLI 코딩 에이전트(Codex CLI, Antigravity CLI(agy) 등
 
 # CLI Agent Team — 외부 CLI를 서브 에이전트로 부리는 오케스트레이터
 
+관련 문서: [[references/task-templates]] | [[references/agents-template]] | [[references/soul-template]]
+
 Claude가 메인 오케스트레이터(뇌)가 되어, Codex CLI·Antigravity CLI(agy) 같은 **별도
 프로세스로 실행되는 외부 코딩 에이전트**를 서브 에이전트로 부리는 구조를 프로젝트에
 세팅한다. 핵심 설계: 상태 저장소(PLAN.md), 명확한 역할+피드백 루프(AGENT_ROLES.md +
@@ -832,7 +834,7 @@ AGENT_ROLES.md가 단일 출처):
   - `scripts/watch-log.ps1` — Windows 실시간 로그 보기 (사용자 직접 실행)
 
   **루프 실행**
-  - `scripts/dispatch.sh` — CLI 직접 배정 (review | execute | feedback 모드)
+  - `scripts/dispatch.sh` — CLI 직접 배정 (review | execute | feedback 모드) [[references/cli-dispatch-guide]]
   - `scripts/trigger.sh` — 데몬 모드에서 .pending 파일로 신호 전달
     - `PICKUP_TIMEOUT=<초>` — 데몬 수신 대기 타임아웃 (기본 30초)
     - `TASK_TIMEOUT=<초>` — 작업 전체 완료 타임아웃 (기본 5400초 = 90분)
@@ -842,7 +844,7 @@ AGENT_ROLES.md가 단일 출처):
   - `scripts/update-state.sh` — .session_state 특정 필드 업데이트 (Phase 5 각 단계)
 
   **검증·학습**
-  - `scripts/verify.sh` — Phase 5 단계 6 자동 검증 (스코프·AC·테스트·증거파일 4종)
+  - `scripts/verify.sh` — Phase 5 단계 6 자동 검증 (스코프·AC·테스트·증거파일 4종) [[references/task-templates#완료-기준]]
   - `scripts/reset-task.sh` — ERROR/STALE 상태 수동 초기화 (trigger.sh 재실행으로 자동 처리됨; 수동 확인용)
   - `scripts/run_failure_tests.sh` — 실패 시나리오 E2E 테스트 (배포 전 검증용 14개 시나리오)
   - `scripts/log-event.sh` — LOG.md 이벤트 행 추가 (리밋 시 [HOUR:XX] 태그 자동 포함)

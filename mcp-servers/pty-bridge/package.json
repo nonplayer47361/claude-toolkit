@@ -1,0 +1,15 @@
+{
+  "name": "pty-bridge",
+  "version": "1.0.0",
+  "description": "ConPTY wrapper to run agy/codex headlessly from Claude Code",
+  "type": "module",
+  "bin": {
+    "pty-bridge": "./run.js"
+  },
+  "scripts": {
+    "install-deps": "npm install"
+  },
+  "dependencies": {
+    "node-pty": "^1.0.0"
+  }
+}

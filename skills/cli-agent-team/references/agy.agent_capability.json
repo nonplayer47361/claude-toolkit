@@ -1,0 +1,34 @@
+{
+  "agent_id": "agy",
+  "display_name": "Antigravity CLI (agy)",
+  "version": "latest",
+  "models": {
+    "quality": "claude-sonnet-4-6",
+    "fast": "claude-haiku-4-5-20251001"
+  },
+  "strengths": [
+    "인라인 수정",
+    "문서 작성",
+    "타입 정의",
+    "주석 정리",
+    "단순 반복 작업",
+    "TODO 갱신",
+    "REPORT 작성"
+  ],
+  "constraints": [
+    "새 파일 생성 최소화",
+    "아키텍처 결정 단독 불가",
+    "requires_tty: headless 실행 시 pty-bridge 필수"
+  ],
+  "execution": {
+    "requires_tty": true,
+    "headless_workaround": "mcp-servers/pty-bridge/run.js",
+    "dispatch_mode": "pty-bridge",
+    "auth_flags": {
+      "full": "--dangerously-skip-permissions",
+      "limited": ""
+    }
+  },
+  "recommended_tasks": ["문서", "주석", "REPORT", "TODO", "타입", "간단한 수정"],
+  "default_model_tier": "fast"
+}

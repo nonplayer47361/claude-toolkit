@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dispatch.sh <cli> <task-id> <auth-mode> [project-dir] [mode]
+# dispatch.sh <cli> <task-id> <auth-mode> [project-dir] [mode] [model-tier]
 #
 # Dispatches a task to an external CLI coding agent.
 # Run with run_in_background: true and wait for the harness notification.
@@ -17,16 +17,24 @@
 #                            before the execute dispatch.
 #                 execute -> agent performs the actual work described in TASK.md,
 #                            writes TODO.md (checklist) and REPORT.md (completion).
+#   [model-tier]  fast | quality  (default: quality)
+#                 fast    → gpt-5.4-mini / claude-haiku (문서·주석·단순 수정)
+#                 quality → gpt-5.5 / claude-sonnet (코드 구현·인증·보안)
 #
 # See references/cli-dispatch-guide.md for flag details and known gotchas.
 
 set -euo pipefail
 
-CLI="${1:?usage: dispatch.sh <cli> <task-id> <auth-mode> [project-dir] [mode]}"
+CLI="${1:?usage: dispatch.sh <cli> <task-id> <auth-mode> [project-dir] [mode] [model-tier]}"
 TASK_ID="${2:?task-id required}"
 AUTH_MODE="${3:?auth-mode required: full|limited}"
 DIR="${4:-$(pwd)}"
 MODE="${5:-execute}"
+MODEL_TIER="${6:-quality}"
+case "$MODEL_TIER" in
+  fast|quality) ;;
+  *) echo "ERROR: unknown model-tier '$MODEL_TIER' (expected fast|quality)" >&2; exit 1 ;;
+esac
 # CLI 타임아웃 — execute/feedback은 30분, review는 10분 (agy --print-timeout보다 여유 있게)
 DISPATCH_TIMEOUT="${DISPATCH_TIMEOUT:-30m}"
 [ "$MODE" = "review" ] && DISPATCH_TIMEOUT="${REVIEW_TIMEOUT:-10m}"
@@ -74,19 +82,23 @@ run_with_timeout() {
 
 case "$CLI" in
   codex)
+    case "$MODEL_TIER" in
+      fast)    CODEX_MODEL="gpt-5.4-mini" ;;
+      quality) CODEX_MODEL="gpt-5.5" ;;
+    esac
     case "$AUTH_MODE" in
       full)
         if [ "$MODE" = "feedback" ]; then
-          run_with_timeout codex exec resume --last --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_with_timeout codex exec -m "$CODEX_MODEL" resume --last --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
         else
-          run_with_timeout codex exec --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_with_timeout codex exec -m "$CODEX_MODEL" --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       limited)
         if [ "$MODE" = "feedback" ]; then
-          run_with_timeout codex exec resume --last "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_with_timeout codex exec -m "$CODEX_MODEL" resume --last "$MSG" 2>&1 | tee "$LOG_FILE"
         else
-          run_with_timeout codex exec "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_with_timeout codex exec -m "$CODEX_MODEL" "$MSG" 2>&1 | tee "$LOG_FILE"
         fi
         ;;
       *)
@@ -96,26 +108,25 @@ case "$CLI" in
     esac
     ;;
   agy)
-    case "$AUTH_MODE" in
-      full)
-        if [ "$MODE" = "feedback" ]; then
-          run_with_timeout agy --continue --print "$MSG" --dangerously-skip-permissions --print-timeout 20m 2>&1 | tee "$LOG_FILE"
-        else
-          run_with_timeout agy --print "$MSG" --dangerously-skip-permissions --print-timeout 20m 2>&1 | tee "$LOG_FILE"
-        fi
-        ;;
-      limited)
-        if [ "$MODE" = "feedback" ]; then
-          run_with_timeout agy --continue --print "$MSG" --print-timeout 20m 2>&1 | tee "$LOG_FILE"
-        else
-          run_with_timeout agy --print "$MSG" --print-timeout 20m 2>&1 | tee "$LOG_FILE"
-        fi
-        ;;
-      *)
-        echo "ERROR: unknown auth-mode '$AUTH_MODE' (expected full|limited)" >&2
-        exit 1
-        ;;
+    # agy는 TTY 없이 실행 시 출력이 사라짐 — ConPTY 래퍼(pty-bridge)로 우회
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PTY_BRIDGE="${SCRIPT_DIR}/../../../mcp-servers/pty-bridge/run.js"
+    if [ ! -f "$PTY_BRIDGE" ]; then
+      echo "ERROR: pty-bridge not found at $PTY_BRIDGE" >&2
+      echo "  Run: cd mcp-servers/pty-bridge && npm install" >&2
+      exit 1
+    fi
+    AGY_TIMEOUT_MS=1200000
+    [ "$MODE" = "review" ] && AGY_TIMEOUT_MS=600000
+    case "$MODEL_TIER" in
+      fast)    AGY_MODEL="claude-haiku-4-5-20251001" ;;
+      quality) AGY_MODEL="claude-sonnet-4-6" ;;
     esac
+    # agy 플래그 조합
+    AGY_FLAGS=(--model "$AGY_MODEL" --print-timeout 20m)
+    [ "$MODE" = "feedback" ] && AGY_FLAGS=(--continue "${AGY_FLAGS[@]}")
+    [ "$AUTH_MODE" = "full" ] && AGY_FLAGS=("${AGY_FLAGS[@]}" --dangerously-skip-permissions)
+    node "$PTY_BRIDGE" agy "$LOG_FILE" "$AGY_TIMEOUT_MS" -- --print "$MSG" "${AGY_FLAGS[@]}" 2>&1 | tee -a "$LOG_FILE"
     ;;
   *)
     echo "ERROR: unknown cli '$CLI'. Add a case for it here, after verifying" >&2

@@ -1,0 +1,32 @@
+{
+  "agent_id": "codex",
+  "display_name": "OpenAI Codex CLI",
+  "version": "latest",
+  "models": {
+    "quality": "gpt-5.5",
+    "fast": "gpt-5.4-mini"
+  },
+  "strengths": [
+    "알고리즘 구현",
+    "단위 테스트 작성",
+    "성능 최적화",
+    "복잡한 리팩토링",
+    "Bash/Python 스크립트"
+  ],
+  "constraints": [
+    "인증·자격증명 파일 수정 금지",
+    "DB 스키마 직접 변경 금지",
+    "새 의존성 추가 시 Claude 승인 필요"
+  ],
+  "execution": {
+    "requires_tty": false,
+    "headless": true,
+    "dispatch_mode": "direct",
+    "auth_flags": {
+      "full": "--dangerously-bypass-approvals-and-sandbox",
+      "limited": ""
+    }
+  },
+  "recommended_tasks": ["코드 구현", "테스트", "스크립트", "리팩토링"],
+  "default_model_tier": "quality"
+}

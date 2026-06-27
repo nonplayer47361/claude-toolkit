@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# trigger.sh <agent> <task-id> <mode> [project-dir]
+# trigger.sh <agent> <task-id> <mode> [project-dir] [model-tier]
 #
 # 에이전트 데몬(agent-watch.ps1)이 실행 중일 때만 사용.
 # 트리거 파일을 써서 데몬에게 작업을 전달하고, 완료 신호를 기다린다.
@@ -15,10 +15,11 @@
 
 set -euo pipefail
 
-AGENT="${1:?usage: trigger.sh <agent> <task-id> <mode> [project-dir]}"
+AGENT="${1:?usage: trigger.sh <agent> <task-id> <mode> [project-dir] [model-tier]}"
 TASK_ID="${2:?task-id required}"
 MODE="${3:-execute}"
 DIR="${4:-$(pwd)}"
+MODEL_TIER="${5:-quality}"
 
 # 타임아웃 설정 (테스트 시 환경변수로 단축 가능)
 # PICKUP_TIMEOUT: 데몬이 .pending 파일을 가져갈 때까지 대기 초 (기본 30)
@@ -41,7 +42,7 @@ if [ ! -f "$DAEMON_MARKER" ]; then
   echo "  .\\scripts\\agent-watch.ps1 -Agent ${AGENT} -AuthMode <full|limited>" >&2
   echo "" >&2
   echo "  또는 데몬 없이 직접 실행하려면:" >&2
-  echo "  bash scripts/dispatch.sh ${AGENT} ${TASK_ID} <auth-mode> [dir] ${MODE}" >&2
+  echo "  bash scripts/dispatch.sh ${AGENT} ${TASK_ID} <auth-mode> [dir] ${MODE} ${MODEL_TIER}" >&2
   exit 1
 fi
 
@@ -56,9 +57,9 @@ fi
 # 상태 파일 초기화 (이전 run 잔재 제거)
 rm -f "$STATUS"
 
-# 트리거 파일 작성 (1행: task-id, 2행: mode)
-printf "%s\n%s\n" "$TASK_ID" "$MODE" > "$PENDING"
-echo "[trigger] ${AGENT} → ${TASK_ID} (${MODE}) 전송"
+# 트리거 파일 작성 (1행: task-id, 2행: mode, 3행: model-tier)
+printf "%s\n%s\n%s\n" "$TASK_ID" "$MODE" "$MODEL_TIER" > "$PENDING"
+echo "[trigger] ${AGENT} → ${TASK_ID} (${MODE} / ${MODEL_TIER}) 전송"
 
 # 데몬이 트리거를 수신할 때까지 대기 (PENDING 파일 소멸 = 데몬이 가져감)
 echo "[trigger] ${AGENT} 데몬 수신 대기..."
@@ -90,6 +91,18 @@ while true; do
         echo "  다시 trigger.sh를 실행하면 자동으로 재시도됩니다." >&2
         echo "  (수동 상태 확인·초기화: scripts/reset-task.sh ${TASK_ID} ${AGENT})" >&2
         exit 1
+        ;;
+      ERROR_AC)
+        echo "ERROR: ${AGENT} → ${TASK_ID} AC 미통과 - REPORT.md 체크리스트를 확인하세요." >&2
+        exit 1
+        ;;
+      ERROR_TEST)
+        echo "ERROR: ${AGENT} → ${TASK_ID} 테스트/문법 오류 - 로그를 확인하세요." >&2
+        exit 1
+        ;;
+      ERROR_TIMEOUT)
+        echo "ERROR: ${AGENT} → ${TASK_ID} 타임아웃 초과" >&2
+        exit 3
         ;;
       STALE)
         echo "ERROR: ${AGENT} → ${TASK_ID} 잔류 상태 감지 (이전 세션에서 중단됨)" >&2

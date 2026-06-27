@@ -107,19 +107,20 @@ try {
         if (Test-Path $pendingFile) {
             $lines  = Get-Content $pendingFile -Encoding UTF8
             $taskId = $lines[0].Trim()
-            $mode   = if ($lines.Count -gt 1) { $lines[1].Trim() } else { "execute" }
+            $mode      = if ($lines.Count -gt 1) { $lines[1].Trim() } else { "execute" }
+            $modelTier = if ($lines.Count -gt 2) { $lines[2].Trim() } else { "quality" }
 
             Remove-Item $pendingFile -Force
 
             $statusFile = "$reportsDir\.status_${taskId}_$Agent"
             [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "IN_PROGRESS`n")
 
-            Write-Host "[$Agent] [RECV] 수신: $taskId ($mode)"
+            Write-Host "[$Agent] [RECV] 수신: $taskId ($mode / $modelTier)"
             Write-Host "[$Agent] >> 실행 중..."
             Write-Host ""
 
             # dispatch.sh를 스킬 절대경로로 호출 (프로젝트 폴더 기준 아님)
-            & $bashExe "$dispatchScriptBash" $Agent $taskId $AuthMode $ProjectDir $mode
+            & $bashExe "$dispatchScriptBash" $Agent $taskId $AuthMode $ProjectDir $mode $modelTier
             $exitCode = $LASTEXITCODE
 
             if ($exitCode -eq 0) {
