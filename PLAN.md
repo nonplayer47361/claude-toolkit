@@ -46,6 +46,21 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 - [x] `AGENTS.md` 프로젝트 루트 적용 (실제 발견한 패턴·결정 포함)
 - [x] `PLAN.md` 작성 (이 파일)
 
+#### 인프라 설치 완료 (2026-06-28)
+- [x] Memory MCP (`@modelcontextprotocol/server-memory`) 설치 및 연결
+- [x] Sequential Thinking MCP (`@modelcontextprotocol/server-sequential-thinking`) 설치 및 연결
+- [x] `lat.md` 설치 + `lat init` → `lat.md/` 커밋
+- [x] VS Code Foam 확장 설치 (Antigravity IDE)
+- [x] `wshobson/agents` → `~/.claude/agents/` 설치
+
+#### 선택 작업 완료 (2026-06-28)
+- [x] `run_failure_tests.sh` 확장: PTY-01/02 추가, pipefail 버그 수정, SIM09 수정
+- [x] E2E 파이프라인 테스트: dispatch→pty-bridge→agy→verify 전 구간 통과 (T-E2E-01)
+- [x] `dashboard.sh` 개선: 실시간 시계, 변경 감지, IN_PROGRESS 우선 정렬, 역방향
+- [x] `dashboard.sh --watch` 실사용 검증 (T-DASH-01 라이브 테스트)
+- [x] Memory MCP 지식 마이그레이션 (8 엔티티, 7 관계 그래프 저장)
+- [x] 새 스킬 개발: `git-helper` (커밋/PR/브랜치), `code-review-ko` (한국어 리뷰)
+
 ---
 
 ## 남은 작업
@@ -72,15 +87,17 @@ VS Code 마켓플레이스: `Foam` 확장 설치 (wikilink 시각화)
 /plugin marketplace add wshobson/agents
 ```
 
-### 선택 작업 (우선순위 순)
+### 선택 작업
 
-| 항목 | 상태 | 내용 |
-|------|------|------|
-| `run_failure_tests.sh` 확장 | ✅ 완료 (2026-06-28) | PTY-01/02 추가, pipefail 버그 수정, parallel-check 체크박스 지원 |
-| E2E 파이프라인 테스트 | ⏳ 대기 | dispatch → pty-bridge → agy → REPORT → verify 전 구간 자동 검증 |
-| `dashboard.sh --watch` 실사용 검증 | ⏳ 대기 | 실제 태스크 실행 중 watch 모드 동작 확인 |
-| Memory MCP 설치 후 지식 마이그레이션 | ⏳ 대기 | 이번 세션 결정 사항을 MCP에 이관 |
-| 새 스킬 개발 | ⏳ 대기 | git-helper, code-review-ko 등 |
+| 항목 | 상태 |
+|------|------|
+| `run_failure_tests.sh` 확장 | ✅ 완료 |
+| E2E 파이프라인 테스트 | ✅ 완료 |
+| `dashboard.sh --watch` 실사용 검증 | ✅ 완료 |
+| `dashboard.sh` 개선 (실시간 시계·정렬) | ✅ 완료 |
+| Memory MCP 지식 마이그레이션 | ✅ 완료 |
+| 새 스킬: `git-helper` | ✅ 완료 |
+| 새 스킬: `code-review-ko` | ✅ 완료 |
 
 ---
 
@@ -88,6 +105,11 @@ VS Code 마켓플레이스: `Foam` 확장 설치 (wikilink 시각화)
 
 | 커밋 | 내용 |
 |------|------|
+| `fec9fc6` | feat: git-helper, code-review-ko 스킬 추가 |
+| `6e794f8` | feat: dashboard.sh 개선 (실시간 시계, 변경 감지, 정렬) |
+| `5915715` | test(E2E): dispatch→pty-bridge→agy→verify 전 구간 통과 |
+| `82ae864` | fix: run_failure_tests 버그 2개 수정 + PTY/SIM09 테스트 개선 |
+| `3af65a2` | chore: lat.md 초기화 |
+| `b1b0fc7` | feat: SOUL.md·AGENTS.md·PLAN.md 적용 |
 | `5f967a2` | feat: cli-agent-team 다중에이전트 구조 고도화 (Phase 1-3) |
 | `e8d8f51` | chore: _agent_reports/ gitignore 추가 |
-| `8d02c11` | feat: cli-agent-team 14개 실패 시나리오 테스트 및 스크립트 고도화 |
