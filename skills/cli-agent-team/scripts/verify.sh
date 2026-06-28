@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # verify.sh <task-id> [project-dir]
 #
 # Phase 5 단계 6에서 Claude가 호출 — 네 가지를 자동 검증한다:
@@ -74,12 +74,30 @@ ALLOWED_SECTION=$(extract_section "$TASK_FILE" "^## 허용 파일" | grep '^- ' 
 if [ -z "$ALLOWED_SECTION" ]; then
     echo "  ⏭️  TASK.md에 '## 허용 파일' 없음 — 건너뜀"
 else
-    # 변경 파일 목록: 추적됨(HEAD diff) + 스테이지됨 + 미추적 신규 파일 모두 포함
-    CHANGED=$(cd "$PROJECT_DIR" && {
+    # dispatch 시점의 스냅샷과 비교하여 작업 이전 변경파일을 제외
+    PRE_DISPATCH_FILE="$PROJECT_DIR/_agent_reports/$TASK_ID/.pre_dispatch_files"
+
+    CHANGED_ALL=$(cd "$PROJECT_DIR" && {
         git diff --name-only HEAD 2>/dev/null || true
         git diff --cached --name-only 2>/dev/null || true
         git ls-files --others --exclude-standard 2>/dev/null || true
     } | sort -u)
+
+    if [ -f "$PRE_DISPATCH_FILE" ]; then
+        # dispatch 이후 변경분만 추출 (교집합 제거)
+        CHANGED=$(comm -23 \
+            <(echo "$CHANGED_ALL") \
+            <(sort "$PRE_DISPATCH_FILE") \
+        )
+        if [ -z "$CHANGED" ] && [ -n "$CHANGED_ALL" ]; then
+            echo "  ℹ️  모든 변경파일은 dispatch 이전부터 존재 → 범위 검사 생략"
+            CHANGED=""
+        fi
+    else
+        # .pre_dispatch_files 없으면 기존 방식으로 폴백
+        CHANGED="$CHANGED_ALL"
+        echo "  ℹ️  .pre_dispatch_files 없음 → 전체 diff로 폴백"
+    fi
 
     if [ -z "$CHANGED" ]; then
         echo "  ⚠️  변경된 파일 없음 (git diff HEAD 기준)"

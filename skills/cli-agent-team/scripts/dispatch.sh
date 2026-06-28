@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # dispatch.sh <cli> <task-id> <auth-mode> [project-dir] [mode] [model-tier]
 #
 # Dispatches a task to an external CLI coding agent.
@@ -234,6 +234,14 @@ if [ ! -f "$TASK_FILE" ]; then
   echo "ERROR: $TASK_FILE not found (cwd=$(pwd)). Write the TASK.md before dispatching." >&2
   exit 1
 fi
+
+# dispatch 시작 시점의 변경 파일 목록을 스냅샷으로 저장 → verify.sh가 작업 이전 파일을 제외할 수 있도록
+mkdir -p "$TASK_DIR"
+{
+  git diff --name-only HEAD 2>/dev/null || true
+  git diff --cached --name-only 2>/dev/null || true
+  git ls-files --others --exclude-standard 2>/dev/null || true
+} | sort -u > "$TASK_DIR/.pre_dispatch_files"
 
 if [ "$MODE" = "review" ]; then
   MSG="BRIEF.md와 _agent_reports/${TASK_ID}/TASK.md를 읽고, 실행 전 검토 의견을 _agent_reports/${TASK_ID}/REVIEW.md에 작성해줘. 코드·파일은 건드리지 마세요. REVIEW.md 형식은 task-templates.md의 REVIEW.md 섹션을 참고해."
