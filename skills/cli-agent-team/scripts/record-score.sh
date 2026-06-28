@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # record-score.sh — 에이전트 태스크 성능 점수 기록 스크립트
 # Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail>
 #

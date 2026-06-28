@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # dispatch.sh <cli> <task-id> <auth-mode> [project-dir] [mode] [model-tier]
 #
 # Dispatches a task to an external CLI coding agent.

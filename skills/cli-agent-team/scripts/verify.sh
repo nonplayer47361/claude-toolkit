@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # verify.sh <task-id> [project-dir]
 #
 # Phase 5 단계 6에서 Claude가 호출 — 네 가지를 자동 검증한다:

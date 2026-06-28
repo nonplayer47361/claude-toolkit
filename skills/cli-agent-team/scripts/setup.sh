@@ -1,4 +1,4 @@
-﻿#!/bin/sh
+#!/bin/sh
 # setup.sh — cli-agent-team 에이전트 자동 감지 & 설정 파일 생성
 #
 # 사용법:
