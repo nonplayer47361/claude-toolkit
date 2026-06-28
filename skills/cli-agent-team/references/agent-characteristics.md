@@ -49,15 +49,18 @@
 
 ### Antigravity CLI — agy
 
-> ⚠️ **모델 불일치 주의**: 이 문서는 Gemini 기반으로 기술돼 있었으나,
-> `dispatch.sh`의 실제 모델 티어 ID는 Anthropic Claude 계열(`claude-haiku-*`, `claude-sonnet-*`)을 사용한다.
-> agy가 실제로 어떤 모델을 사용하는지는 `scripts/probe-cli.sh agy full`로 확인 후 이 표를 갱신하라.
+> **모델 구조 (확인: 2026-06-28, agy v1.0.13)**: agy는 멀티모델 CLI다.
+> 기본 모델: `Gemini 3.5 Flash (High)` (`~/.gemini/antigravity-cli/settings.json`).
+> `dispatch.sh`는 `--model` 플래그로 Claude 모델을 명시적으로 오버라이드해 사용한다.
 
 | 항목 | 내용 |
 |------|------|
-| 기반 모델 | **미확인** — dispatch.sh 기준: fast=`claude-haiku-4-5-20251001`, quality=`claude-sonnet-4-6` |
-| 리셋 주기 | 실제 모델 공급사 정책에 따름 (확인 필요) |
-| 컨텍스트 | 설정된 모델에 따름 |
+| 기반 앱 | Antigravity CLI v1.0.13 — 멀티모델 지원 |
+| 기본 모델 | `Gemini 3.5 Flash (High)` (설정 파일 기준) |
+| dispatch.sh fast | `--model claude-haiku-4-5-20251001` (오버라이드) |
+| dispatch.sh quality | `--model claude-sonnet-4-6` (오버라이드) |
+| 리셋 주기 | dispatch.sh 사용 시 Anthropic 정책 적용 (Claude 계열) |
+| 컨텍스트 | claude-sonnet-4-6 사용 시 200K tokens |
 | 강점 | 대형 코드베이스 전체 분석, 긴 파일 읽기, 광범위한 리팩토링 |
 | 약점 | 헤드리스 stdout 침묵 버그 (파일 쓰기는 됨 — `cli-dispatch-guide.md` 참고) |
 | 비용 특성 | 실제 모델 공급사 정책에 따름 |

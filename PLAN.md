@@ -63,6 +63,23 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 ---
 
+## M4 — adaptive routing + 스킬 완성도 (2026-06-28~)
+
+### 진행 대기
+
+| ID | 설명 | 담당 | 규모 | 우선순위 |
+|----|------|------|------|--------|
+| T-M4-AUTO | dispatch.sh `auto` 모드 → `.agent_scores.json` 기반 adaptive routing 구현 | agy | 중형 | P1 |
+| T-M4-PROBE | probe-cli.sh agy full 실행 → agy 실제 모델 확인 → agent-characteristics.md 갱신 | Claude직접 | 소형 | P1 |
+| T-M4-INIT | `agent-team init` 대화형 초기화 명령 (setup.sh 대체) | agy | 대형 | P2 |
+| T-M4-VERIFY | verify.sh 타입 체크·보안 패턴 검사 확장 | agy | 중형 | P2 |
+
+### 완료
+
+(없음)
+
+---
+
 ## 남은 작업
 
 ### 인프라 설치 (사용자 직접 실행)
