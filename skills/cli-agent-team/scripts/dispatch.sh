@@ -254,7 +254,15 @@ REPORT.md는 반드시 다음 섹션을 포함해야 해:
 
 이 섹션이 없으면 자동 검증이 실패하므로 빠뜨리지 말 것.
 
-【검증 규칙】 스크립트 문법 확인은 반드시 'bash -n <파일>' 형식만 사용할 것. dispatch.sh를 직접 실행하면 exit 코드가 이 세션 전체에 전파되어 작업이 실패로 오판된다."
+【검증 규칙】 스크립트 문법 확인은 반드시 'bash -n <파일>' 형식만 사용할 것. dispatch.sh를 직접 실행하면 exit 코드가 이 세션 전체에 전파되어 작업이 실패로 오판된다.
+
+【토큰 절약】 파일 탐색·코드 검색 시 grep/ls 대신 RTK 명령 사용:
+  rtk grep <패턴> <경로>   # grep 대신
+  rtk ls <경로>            # ls 대신
+  rtk git diff             # git diff 대신
+  rtk find <패턴> <경로>   # find 대신
+  rtk diff                 # diff 대신
+codebase-memory-mcp MCP 도구가 있으면 파일 직접 읽기 전에 search_graph/trace_path 우선 사용."
 elif [ "$MODE" = "feedback" ]; then
   MSG="_agent_reports/${TASK_ID}/TASK.md와 _agent_reports/${TASK_ID}/FEEDBACK.md를 읽고, FEEDBACK.md에 지적된 사항만 수정해줘. 다른 부분은 건드리지 마세요. 완료 후 REPORT.md에 '## 수정 내역 (회차 N)' 절을 추가해서 무엇을 어떻게 고쳤는지 적어줘."
   MSG="${MSG} FEEDBACK.md 하단의 '## 이전 시도 이력' 섹션을 반드시 읽어서 직전 시도에서 무엇이 잘못됐는지 파악하고 수정해라. 이전 시도와 무엇이 달라졌는지도 REPORT.md에 적어줘."

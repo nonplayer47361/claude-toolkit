@@ -82,42 +82,50 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 ### 진행 대기
 
-| ID | 설명 | 담당 | 규모 | 우선순위 |
-|----|------|------|------|--------|
-| T-M4-AUTO | dispatch.sh `auto` 모드 → `.agent_scores.json` 기반 adaptive routing 구현 | agy | 중형 | P1 |
-| T-M4-PROBE | probe-cli.sh agy full 실행 → agy 실제 모델 확인 → agent-characteristics.md 갱신 | Claude직접 | 소형 | P1 |
-| T-M4-INIT | `agent-team init` 대화형 초기화 명령 (setup.sh 대체) | agy | 대형 | P2 |
-| T-M4-VERIFY | verify.sh 타입 체크·보안 패턴 검사 확장 | agy | 중형 | P2 |
+(없음)
 
 ### 완료
 
-(없음)
+| ID | 설명 | 커밋 |
+|----|------|------|
+| T-M4-AUTO | dispatch.sh `auto` 모드 → `.agent_scores.json` 기반 adaptive routing 구현 | 584d29e |
+| T-M4-PROBE | probe-cli.sh agy full 실행 → agy 실제 모델 확인 → agent-characteristics.md 갱신 | 1c6dfe6 |
+| T-M4-VERIFY | verify.sh 타입 체크·보안 패턴 검사 확장 | d29fc03 |
+| T-M4-INIT | `agent-team init` 대화형 초기화 명령 (setup.sh 대체) | 1c34d19 |
+
+---
+
+## M6 — 토큰 최적화 인프라 (2026-06-29~)
+
+### 진행 대기
+
+| ID | 설명 | 담당 | 규모 | 우선순위 |
+|----|------|------|------|---------|
+| T-M6-CBM-INDEX | codebase-memory-mcp 프로젝트 인덱싱 + 에이전트 활용 지침 추가 | Claude | 소형 | P1 |
+| T-M6-RTK-DISPATCH | dispatch.sh MSG에 RTK 사용 지침 삽입 — 에이전트가 rtk git, rtk grep 자동 사용 | Claude | 소형 | P1 |
+| T-M6-SERENA-HOOKS | Serena hooks 설정 (Claude Code 권장 hooks) | Claude | 소형 | P2 |
+
+### 완료
+
+| ID | 설명 | 비고 |
+|----|------|------|
+| T-M6-RTK-INSTALL | RTK v0.43.0 설치 — Claude Code hook, agy rules, Codex AGENTS.md | 수동 설치 |
+| T-M6-CBM-INSTALL | codebase-memory-mcp v0.8.1 설치 — 6개 에이전트 자동 등록 | 수동 설치 |
+| T-M6-SERENA-INSTALL | Serena v1.5.3 설치 — Claude Code MCP 등록 | 수동 설치 |
 
 ---
 
 ## 남은 작업
 
-### 인프라 설치 (사용자 직접 실행)
+### 인프라 설치 완료 현황
 
-```powershell
-# Memory MCP — 세션 간 지식 그래프 보존
-claude mcp add memory npx @modelcontextprotocol/server-memory
-
-# Sequential Thinking MCP — PLAN.md 작성 전 구조적 추론
-claude mcp add sequentialthinking npx @modelcontextprotocol/server-sequentialthinking
-```
-
-```bash
-# lat.md — [[wikilink]] 기반 MD 지식 그래프
-npm install -g lat.md && lat init
-```
-
-VS Code 마켓플레이스: `Foam` 확장 설치 (wikilink 시각화)
-
-```
-# wshobson 플러그인 (Claude Code 내에서)
-/plugin marketplace add wshobson/agents
-```
+| 항목 | 상태 |
+|------|------|
+| Memory MCP | ✅ 설치됨 |
+| Sequential Thinking MCP | ✅ 설치됨 |
+| RTK v0.43.0 | ✅ 설치됨 (Claude+agy+Codex) |
+| codebase-memory-mcp v0.8.1 | ✅ 설치됨 (6개 에이전트) |
+| Serena v1.5.3 | ✅ 설치됨 |
 
 ### 선택 작업
 
