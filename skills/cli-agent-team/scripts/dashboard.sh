@@ -211,9 +211,16 @@ print_task_list() {
 
 # 헤더 출력 (시각 갱신용)
 print_header() {
+  local _rtk_info=""
+  if command -v rtk >/dev/null 2>&1; then
+    local _gain
+    _gain="$(rtk gain 2>/dev/null | grep -iE '[0-9]+.*(%|token|tok)' | head -1 \
+             | sed 's/^[[:space:]]*//' || true)"
+    [ -n "$_gain" ] && _rtk_info=" | RTK: ${_gain}"
+  fi
   echo ""
   echo -e "${BOLD}${CYAN}══════════════════════════════════════════════════${RESET}"
-  echo -e "${BOLD}${CYAN}║        Agent Dashboard ▸ $(date '+%Y-%m-%d %H:%M:%S')        ║${RESET}"
+  echo -e "${BOLD}${CYAN}║   Agent Dashboard ▸ $(date '+%Y-%m-%d %H:%M:%S')${_rtk_info}${RESET}"
   echo -e "${BOLD}${CYAN}══════════════════════════════════════════════════${RESET}"
 }
 
