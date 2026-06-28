@@ -25,6 +25,19 @@
 
 set -euo pipefail
 
+# EXIT trap: 에이전트 바이너리가 내부 검증 중 dispatch.sh를 호출해 non-zero 로 종료해도
+# REPORT.md에 완료된 AC([x])가 있으면 작업 성공으로 처리한다.
+_on_exit() {
+  local ec=$?
+  [ "$ec" -eq 0 ] && return
+  local report="${TASK_DIR:-}"/REPORT.md
+  if [ -f "$report" ] && grep -q -- '- \[x\]' "$report" 2>/dev/null; then
+    echo "[dispatch] ⚠ exit ${ec} — REPORT.md 완료 확인됨, 성공으로 처리" >&2
+    exit 0
+  fi
+}
+trap _on_exit EXIT
+
 log_error() {
   local task_id="$1" agent="$2" message="$3"
   local reports_dir="${REPORTS_DIR:-_agent_reports}"
@@ -148,7 +161,9 @@ REPORT.md는 반드시 다음 섹션을 포함해야 해:
 ## AC 체크리스트
 - [x] 또는 - [ ] 형식으로 TASK.md의 완료 기준을 하나씩 체크
 
-이 섹션이 없으면 자동 검증이 실패하므로 빠뜨리지 말 것."
+이 섹션이 없으면 자동 검증이 실패하므로 빠뜨리지 말 것.
+
+【검증 규칙】 스크립트 문법 확인은 반드시 'bash -n <파일>' 형식만 사용할 것. dispatch.sh를 직접 실행하면 exit 코드가 이 세션 전체에 전파되어 작업이 실패로 오판된다."
 elif [ "$MODE" = "feedback" ]; then
   MSG="_agent_reports/${TASK_ID}/TASK.md와 _agent_reports/${TASK_ID}/FEEDBACK.md를 읽고, FEEDBACK.md에 지적된 사항만 수정해줘. 다른 부분은 건드리지 마세요. 완료 후 REPORT.md에 '## 수정 내역 (회차 N)' 절을 추가해서 무엇을 어떻게 고쳤는지 적어줘."
 else

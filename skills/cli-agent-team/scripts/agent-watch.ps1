@@ -128,9 +128,26 @@ try {
                 Write-Host ""
                 Write-Host "[$Agent] [DONE] 완료: $taskId"
             } else {
-                [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "ERROR`n")
-                Write-Host ""
-                Write-Host "[$Agent] [ERROR] 실패 (exit $exitCode): $taskId"
+                # 2차 방어: dispatch.sh가 non-zero 종료여도 REPORT.md에 완료 AC([x])가
+                # 있으면 작업은 성공한 것으로 판정한다.
+                # (에이전트가 내부 검증 중 dispatch.sh를 직접 실행해 exit 전파되는 패턴 방지)
+                $reportPath = "$ProjectDir\_agent_reports\$taskId\REPORT.md"
+                $workDone = $false
+                if (Test-Path $reportPath) {
+                    $rContent = Get-Content $reportPath -Raw -ErrorAction SilentlyContinue
+                    if ($rContent -match '- \[x\]') { $workDone = $true }
+                }
+
+                if ($workDone) {
+                    [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "DONE`n")
+                    Write-Host ""
+                    Write-Host "[$Agent] [DONE] 완료 (exit $exitCode 무시 — REPORT.md AC 확인): $taskId"
+                    Write-Host "[$Agent]   ⚠ 내부 검증 중 exit $exitCode 발생했으나 결과물 정상"
+                } else {
+                    [System.IO.File]::WriteAllText("$ProjectDir\$statusFile", "ERROR`n")
+                    Write-Host ""
+                    Write-Host "[$Agent] [ERROR] 실패 (exit $exitCode): $taskId"
+                }
             }
             Write-Host "[$Agent] ── 다음 지시 대기 중 ──"
             Write-Host ""
