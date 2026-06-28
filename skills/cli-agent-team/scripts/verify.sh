@@ -91,8 +91,7 @@ else
             while IFS= read -r allowed; do
                 [ -z "$allowed" ] && continue
                 if [[ "$changed_file" == "$allowed" ]] || \
-                   [[ "$changed_file" == "$allowed/"* ]] || \
-                   [[ "$changed_file" == "$allowed"* ]]; then
+                   [[ "$changed_file" == "$allowed/"* ]]; then
                     MATCH=1
                     break
                 fi

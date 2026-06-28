@@ -24,6 +24,7 @@
 # See references/cli-dispatch-guide.md for flag details and known gotchas.
 
 set -euo pipefail
+DISPATCH_START_TS=$(date +%s 2>/dev/null || echo 0)
 
 # EXIT trap: 에이전트 바이너리가 내부 검증 중 dispatch.sh를 호출해 non-zero 로 종료해도
 # REPORT.md에 완료된 AC([x])가 있으면 작업 성공으로 처리한다.
@@ -31,7 +32,11 @@ _on_exit() {
   local ec=$?
   [ "$ec" -eq 0 ] && return
   local report="${TASK_DIR:-}"/REPORT.md
-  if [ -f "$report" ] && grep -q -- '- \[x\]' "$report" 2>/dev/null; then
+  local report_ts
+  report_ts=$(stat -c %Y "$report" 2>/dev/null || stat -f %m "$report" 2>/dev/null || echo 0)
+  if [ -f "$report" ] \
+     && [ "${report_ts:-0}" -gt "${DISPATCH_START_TS:-0}" ] \
+     && grep -q -- '- \[x\]' "$report" 2>/dev/null; then
     echo "[dispatch] ⚠ exit ${ec} — REPORT.md 완료 확인됨, 성공으로 처리" >&2
     exit 0
   fi
@@ -213,10 +218,14 @@ case "$CLI" in
   agy)
     # agy는 TTY 없이 실행 시 출력이 사라짐 — ConPTY 래퍼(pty-bridge)로 우회
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    PTY_BRIDGE="${SCRIPT_DIR}/../../../mcp-servers/pty-bridge/run.js"
+    PTY_BRIDGE="${PTY_BRIDGE_PATH:-${SCRIPT_DIR}/../../../mcp-servers/pty-bridge/run.js}"
     if [ ! -f "$PTY_BRIDGE" ]; then
-      echo "ERROR: pty-bridge not found at $PTY_BRIDGE" >&2
-      echo "  Run: cd mcp-servers/pty-bridge && npm install" >&2
+      echo "ERROR: pty-bridge not found." >&2
+      echo "  search path: $PTY_BRIDGE" >&2
+      echo "  resolution options:" >&2
+      echo "    1) Set env var: export PTY_BRIDGE_PATH=/absolute/path/to/mcp-servers/pty-bridge/run.js" >&2
+      echo "    2) Add to conf: echo 'PTY_BRIDGE_PATH=...' >> _agent_reports/.cli-agent-team.conf" >&2
+      echo "    3) Install deps: cd <repo>/mcp-servers/pty-bridge && npm install" >&2
       exit 1
     fi
     AGY_TIMEOUT_MS=1200000
