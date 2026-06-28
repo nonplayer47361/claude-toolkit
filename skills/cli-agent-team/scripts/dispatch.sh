@@ -134,14 +134,59 @@ if [ -z "${AGY_BIN:-}" ] && command -v agy >/dev/null 2>&1; then
 fi
 
 if [ "$CLI" = "auto" ]; then
+  # 1단계: 기본 우선순위 결정 (기존 로직)
   if [ "${AGY_ENABLED:-true}" = "true" ] && [ -n "${AGY_BIN:-}" ]; then
-    CLI="agy"
+    _AUTO_DEFAULT="agy"
   elif [ "${CODEX_ENABLED:-true}" = "true" ] && [ -n "${CODEX_BIN:-}" ]; then
-    CLI="codex"
+    _AUTO_DEFAULT="codex"
   else
-    CLI="claude"
+    _AUTO_DEFAULT="claude"
   fi
-  echo "[dispatch] auto -> ${CLI} 선택"
+
+  # 2단계: task_type 추출
+  _TASK_TYPE_RAW=$(grep -m1 '^task_type:' "$TASK_FILE" 2>/dev/null \
+    | sed 's/^task_type:[[:space:]]*//' | tr -d '[:space:]' || true)
+  _TASK_TYPE="${_TASK_TYPE_RAW%%.*}"
+
+  # 3단계: .agent_scores.json 기반 보정 (jq 필요, 데이터 충분 시에만)
+  _AUTO_CLI="$_AUTO_DEFAULT"
+  _SCORES_FILE="${REPORTS_DIR}/.agent_scores.json"
+  if [ -n "$_TASK_TYPE" ] && command -v jq >/dev/null 2>&1 && [ -f "$_SCORES_FILE" ]; then
+    _AGY_TOTAL=$(jq -r --arg t "$_TASK_TYPE" \
+      '.agents.agy[$t].total // 0' "$_SCORES_FILE" 2>/dev/null || echo 0)
+    _CODEX_TOTAL=$(jq -r --arg t "$_TASK_TYPE" \
+      '.agents.codex[$t].total // 0' "$_SCORES_FILE" 2>/dev/null || echo 0)
+
+    if [ "${_AGY_TOTAL:-0}" -ge 5 ] && [ "${_CODEX_TOTAL:-0}" -ge 5 ]; then
+      _AGY_PASS=$(jq -r --arg t "$_TASK_TYPE" \
+        '.agents.agy[$t].ac_pass // 0' "$_SCORES_FILE" 2>/dev/null || echo 0)
+      _CODEX_PASS=$(jq -r --arg t "$_TASK_TYPE" \
+        '.agents.codex[$t].ac_pass // 0' "$_SCORES_FILE" 2>/dev/null || echo 0)
+      # 승률 = 100 * pass / total (정수 연산, 소수점 버림)
+      _AGY_RATE=$(( (_AGY_PASS * 100) / _AGY_TOTAL ))
+      _CODEX_RATE=$(( (_CODEX_PASS * 100) / _CODEX_TOTAL ))
+      _DIFF=$(( _AGY_RATE - _CODEX_RATE ))
+      _ABS_DIFF=$(( _DIFF < 0 ? -_DIFF : _DIFF ))
+
+      if [ "$_ABS_DIFF" -ge 15 ]; then
+        if [ "$_AGY_RATE" -gt "$_CODEX_RATE" ]; then
+          _AUTO_CLI="agy"
+          echo "[dispatch] auto -> agy 선택 (적응형: ${_TASK_TYPE} agy ${_AGY_RATE}% > codex ${_CODEX_RATE}%)"
+        else
+          _AUTO_CLI="codex"
+          echo "[dispatch] auto -> codex 선택 (적응형: ${_TASK_TYPE} codex ${_CODEX_RATE}% > agy ${_AGY_RATE}%)"
+        fi
+      else
+        echo "[dispatch] auto -> ${_AUTO_DEFAULT} 선택 (적응형: 승률 차이 ${_ABS_DIFF}%p 미미, 기본값)"
+      fi
+    else
+      echo "[dispatch] auto -> ${_AUTO_DEFAULT} 선택 (적응형: 데이터 부족 agy=${_AGY_TOTAL:-0} codex=${_CODEX_TOTAL:-0}, 기본값)"
+    fi
+  else
+    echo "[dispatch] auto -> ${_AUTO_DEFAULT} 선택 (기본값)"
+  fi
+
+  CLI="$_AUTO_CLI"
 fi
 
 case "$CLI" in
