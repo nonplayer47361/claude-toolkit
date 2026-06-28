@@ -255,8 +255,15 @@ print_dashboard() {
 
 # ─── 변경 감지용 지문 ───────────────────────────────────────────────────────
 get_fingerprint() {
-  # 디렉토리 목록 + 파일 크기/수정시간 → cksum
-  ls -laR "${REPORTS_DIR}/" 2>/dev/null | cksum 2>/dev/null || echo "0 0"
+  # 의미 있는 상태 변화만 감지:
+  #   - 태스크 디렉토리 목록 (태스크 추가/삭제)
+  #   - .status_* 파일 내용 (IN_PROGRESS→DONE 등 상태 전환)
+  #   - .daemon_* 파일 존재 여부 (데몬 up/down)
+  {
+    ls -d "${REPORTS_DIR}"/*/  2>/dev/null        # 태스크 추가/삭제
+    cat  "${REPORTS_DIR}"/.status_* 2>/dev/null   # 상태 파일 내용
+    ls   "${REPORTS_DIR}"/.daemon_* 2>/dev/null   # 데몬 마커
+  } | cksum 2>/dev/null || echo "0 0"
 }
 
 # ─── 실행 ───────────────────────────────────────────────────────────────────
