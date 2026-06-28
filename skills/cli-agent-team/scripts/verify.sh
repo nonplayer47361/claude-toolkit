@@ -182,7 +182,7 @@ fi
 # ── 4. 완료 증거 파일 확인 ──────────────────────────────────────────
 
 echo ""
-echo "[검사 4/4] 완료 증거 파일"
+echo "[검사 4/5] 완료 증거 파일"
 
 EVIDENCE_LINES=$(extract_section "$TASK_FILE" "^## 완료 증거 파일" | grep '^- ' | sed 's/^- //' || true)
 
@@ -225,6 +225,45 @@ else
 
     if [ "$EV_FAIL" -eq 0 ]; then
         echo "  ✅ 모든 완료 증거 파일 확인됨"
+    fi
+fi
+
+# ── 5. 보안 패턴 스캔 ────────────────────────────────────────────────
+
+echo ""
+echo "[검사 5/5] 보안 패턴 스캔"
+
+SEC_DIFF=$(cd "$PROJECT_DIR" && git diff HEAD 2>/dev/null || true)
+
+if [ -z "$SEC_DIFF" ]; then
+    echo "  ⏭️  변경된 내용 없음 — 건너뜀"
+else
+    SEC_FAIL=0
+
+    # 1. 시크릿 패턴 감지 (추가된 줄만: ^+[^+])
+    SECRET_HIT=$(echo "$SEC_DIFF" | grep '^+[^+]' | \
+        grep -iE '(api[_-]?key|secret|password|passwd|token|bearer)\s*[=:]\s*["'"'"'][^"'"'"']{8,}' \
+        2>/dev/null || true)
+    if [ -n "$SECRET_HIT" ]; then
+        echo "  ❌ 시크릿 패턴 감지 — 민감 정보 포함 가능성"
+        echo "$SECRET_HIT" | head -3 | sed 's/^/      /'
+        SEC_FAIL=1
+        FAILED=1
+    fi
+
+    # 2. 위험 명령어 패턴 감지 (추가된 줄만)
+    DANGER_HIT=$(echo "$SEC_DIFF" | grep '^+[^+]' | \
+        grep -E '(rm\s+-rf\s|git\s+reset\s+--hard|DROP\s+TABLE|chmod\s+777|eval\s+\$)' \
+        2>/dev/null || true)
+    if [ -n "$DANGER_HIT" ]; then
+        echo "  ❌ 위험 명령어 패턴 감지 — 검토 필요"
+        echo "$DANGER_HIT" | head -3 | sed 's/^/      /'
+        SEC_FAIL=1
+        FAILED=1
+    fi
+
+    if [ "$SEC_FAIL" -eq 0 ]; then
+        echo "  ✅ 보안 패턴 이상 없음"
     fi
 fi
 
