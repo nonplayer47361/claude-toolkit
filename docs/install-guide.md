@@ -68,6 +68,19 @@ Project-local install on Windows:
 
 After installation, restart Claude Code if newly installed commands are not detected.
 
+## 2.5. pty-bridge 의존성 설치 (agy 사용 시 필수)
+
+`agy`를 Windows에서 사용하려면 pty-bridge의 Node.js 의존성을 설치해야 한다.
+
+```bash
+cd mcp-servers/pty-bridge
+npm install
+cd ../..
+```
+
+`npm install`이 완료되면 `mcp-servers/pty-bridge/node_modules/node-pty/` 디렉터리가 생성된다.
+`scripts/setup.ps1`(또는 `setup.sh`)을 사용하면 이 단계가 자동으로 처리된다.
+
 ## 3. Run cli-agent-team setup.sh
 
 From a project that should use the multi-agent loop, run:
@@ -144,7 +157,50 @@ bash skills/cli-agent-team/scripts/trigger.sh codex T001 execute "$(pwd)" qualit
 
 Use `agy` instead of `codex` only when `agy` is installed and enabled.
 
-## 5. Troubleshooting
+**다른 프로젝트에서 watcher를 실행하는 경우** `-ProjectDir`를 명시한다:
+
+```powershell
+~\.claude\skills\cli-agent-team\scripts\agent-watch.ps1 `
+  -Agent codex `
+  -AuthMode limited `
+  -ProjectDir "C:\path\to\my-project"
+```
+
+`-ProjectDir`를 생략하면 PowerShell의 **현재 작업 디렉터리**를 프로젝트 루트로 인식한다.
+claude-toolkit 디렉터리가 아닌 실제 프로젝트 디렉터리에서 실행하거나, `-ProjectDir`를 명시해야 한다.
+
+## 5. 설치 후 첫 5분
+
+설치가 완료됐으면 아래 순서로 동작을 확인한다.
+
+### git-helper 확인
+
+임의의 git 저장소에서 Claude Code를 열고:
+```
+커밋 메시지 써줘
+```
+Claude가 `git diff --staged`를 읽고 커밋 메시지 초안을 제시하면 정상이다.
+
+### code-review-ko 확인
+
+```
+코드 리뷰해줘
+```
+Claude가 현재 diff를 한국어로 리뷰하면 정상이다.
+
+### cli-agent-team 첫 실행 (선택)
+
+```bash
+# 1. 에이전트 설정 확인
+bash ~/.claude/skills/cli-agent-team/scripts/setup.sh --status
+
+# 2. 대시보드 시작
+bash ~/.claude/skills/cli-agent-team/scripts/dashboard.sh --watch
+```
+
+다중 에이전트 루프는 [cli-agent-team 가이드](cli-agent-team-guide.md)를 참고한다.
+
+## 6. Troubleshooting
 
 `bash: command not found` on Windows:
 

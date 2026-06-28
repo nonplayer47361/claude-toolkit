@@ -25,6 +25,24 @@
 
 set -euo pipefail
 
+log_error() {
+  local task_id="$1" agent="$2" message="$3"
+  local reports_dir="${REPORTS_DIR:-_agent_reports}"
+  local log_file="${reports_dir}/error.log"
+  local ts lines
+
+  mkdir -p "$reports_dir"
+  ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date '+%Y-%m-%dT%H:%M:%SZ')"
+  printf '[%s] [%s] [%s] %s\n' "$ts" "$task_id" "$agent" "$message" >> "$log_file"
+
+  lines="$(wc -l < "$log_file" 2>/dev/null || echo 0)"
+  lines="${lines//[[:space:]]/}"
+  if [ "${lines:-0}" -gt 100 ]; then
+    tail -50 "$log_file" > "${log_file}.tmp"
+    mv "${log_file}.tmp" "$log_file"
+  fi
+}
+
 CLI="${1:?usage: dispatch.sh <cli> <task-id> <auth-mode> [project-dir] [mode] [model-tier]}"
 TASK_ID="${2:?task-id required}"
 AUTH_MODE="${3:?auth-mode required: full|limited}"
@@ -78,12 +96,14 @@ fi
 case "$CLI" in
   codex)
     if [ "${CODEX_ENABLED:-true}" = "false" ]; then
+      log_error "$TASK_ID" "$CLI" "agent disabled (conf: CODEX_ENABLED=false)"
       echo "ERROR: codex는 비활성 상태입니다. (setup.sh --enable-codex 로 활성화)" >&2
       exit 1
     fi
     ;;
   agy)
     if [ "${AGY_ENABLED:-true}" = "false" ]; then
+      log_error "$TASK_ID" "$CLI" "agent disabled (conf: AGY_ENABLED=false)"
       echo "ERROR: agy는 비활성 상태입니다. (setup.sh --enable-agy 로 활성화)" >&2
       exit 1
     fi
@@ -92,7 +112,29 @@ esac
 
 LOG_FILE="${TASK_DIR}/_${CLI}_stdout.log"
 
+run_cli_logged() {
+  local tee_mode="$1"
+  shift
+  local exit_code
+
+  set +e
+  if [ "$tee_mode" = "append" ]; then
+    "$@" 2>&1 | tee -a "$LOG_FILE"
+    exit_code=${PIPESTATUS[0]}
+  else
+    "$@" 2>&1 | tee "$LOG_FILE"
+    exit_code=${PIPESTATUS[0]}
+  fi
+  set -e
+
+  if [ "$exit_code" -ne 0 ]; then
+    log_error "$TASK_ID" "$CLI" "exit $exit_code"
+  fi
+  return "$exit_code"
+}
+
 if [ ! -f "$TASK_FILE" ]; then
+  log_error "$TASK_ID" "$CLI" "TASK.md not found: $TASK_FILE"
   echo "ERROR: $TASK_FILE not found (cwd=$(pwd)). Write the TASK.md before dispatching." >&2
   exit 1
 fi
@@ -135,16 +177,16 @@ case "$CLI" in
     case "$AUTH_MODE" in
       full)
         if [ "$MODE" = "feedback" ]; then
-          run_with_timeout codex exec -m "$CODEX_MODEL" resume --last --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" resume --last --dangerously-bypass-approvals-and-sandbox "$MSG"
         else
-          run_with_timeout codex exec -m "$CODEX_MODEL" --dangerously-bypass-approvals-and-sandbox "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" --dangerously-bypass-approvals-and-sandbox "$MSG"
         fi
         ;;
       limited)
         if [ "$MODE" = "feedback" ]; then
-          run_with_timeout codex exec -m "$CODEX_MODEL" resume --last "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" resume --last "$MSG"
         else
-          run_with_timeout codex exec -m "$CODEX_MODEL" "$MSG" 2>&1 | tee "$LOG_FILE"
+          run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" "$MSG"
         fi
         ;;
       *)
@@ -172,14 +214,16 @@ case "$CLI" in
     AGY_FLAGS=(--model "$AGY_MODEL" --print-timeout 20m)
     [ "$MODE" = "feedback" ] && AGY_FLAGS=(--continue "${AGY_FLAGS[@]}")
     [ "$AUTH_MODE" = "full" ] && AGY_FLAGS=("${AGY_FLAGS[@]}" --dangerously-skip-permissions)
-    node "$PTY_BRIDGE" agy "$LOG_FILE" "$AGY_TIMEOUT_MS" -- --print "$MSG" "${AGY_FLAGS[@]}" 2>&1 | tee -a "$LOG_FILE"
+    run_cli_logged append node "$PTY_BRIDGE" agy "$LOG_FILE" "$AGY_TIMEOUT_MS" -- --print "$MSG" "${AGY_FLAGS[@]}"
     ;;
   claude)
+    log_error "$TASK_ID" "$CLI" "unsupported agent: $CLI"
     echo "ERROR: claude-direct 모드는 아직 구현 중입니다." >&2
     echo "       codex 또는 agy 를 설치하거나 setup.sh --enable-codex 를 실행하세요." >&2
     exit 2
     ;;
   *)
+    log_error "$TASK_ID" "$CLI" "unknown agent: $CLI"
     echo "ERROR: unknown cli '$CLI'. Add a case for it here, after verifying" >&2
     echo "its exact non-interactive + auth-bypass flag names via --help." >&2
     exit 1
