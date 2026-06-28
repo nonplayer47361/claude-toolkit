@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # record-score.sh — 에이전트 태스크 성능 점수 기록 스크립트
-# Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail>
+# Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail> [project-dir]
+# Env  : FAIL_REASON=<code>  — 실패 원인 코드 (verify.sh가 설정)
+#        유효 코드: SCOPE_VIOLATION | AC_INCOMPLETE | SEC_PATTERN | FILE_MISSING | VERIFY_CMD_FAIL
 #
 # 유효한 agent 값: agy, codex
-# 유효한 task_type 값: shell_scripting, documentation, code_implementation, testing, refactoring
+# 유효한 task_type 값 (14종):
+#   shell_scripting, documentation, code_implementation, testing, refactoring,
+#   ui_component, styling, api_backend, database, security,
+#   devops, config, data_processing, analysis
 
 set -euo pipefail
 
@@ -13,7 +18,11 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 SCORES_FILE="$PROJECT_ROOT/_agent_reports/.agent_scores.json"
 
 VALID_AGENTS=("agy" "codex")
-VALID_TASK_TYPES=("shell_scripting" "documentation" "code_implementation" "testing" "refactoring")
+VALID_TASK_TYPES=(
+  "shell_scripting" "documentation" "code_implementation" "testing" "refactoring"
+  "ui_component" "styling" "api_backend" "database" "security"
+  "devops" "config" "data_processing" "analysis"
+)
 
 # ─── 의존성 확인 ─────────────────────────────────────────────────────────────
 if ! command -v jq &>/dev/null; then
@@ -26,6 +35,8 @@ if [[ $# -lt 4 ]] || [[ $# -gt 5 ]]; then
   echo "Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail> [project-dir]" >&2
   echo "  agent       : agy | codex" >&2
   echo "  task_type   : shell_scripting | documentation | code_implementation | testing | refactoring" >&2
+  echo "              | ui_component | styling | api_backend | database | security" >&2
+  echo "              | devops | config | data_processing | analysis" >&2
   echo "  ac_pass     : 통과한 AC 수 (정수)" >&2
   echo "  ac_fail     : 실패한 AC 수 (정수)" >&2
   echo "  project-dir : (선택) 점수 파일 위치 기준 프로젝트 경로" >&2
@@ -71,22 +82,42 @@ fi
 
 # ─── 초기 스키마 ─────────────────────────────────────────────────────────────
 INITIAL_SCHEMA='{
-  "version": 1,
+  "version": 2,
   "last_updated": "1970-01-01T00:00:00Z",
   "agents": {
     "agy": {
-      "shell_scripting":      { "ac_pass": 0, "ac_fail": 0, "total": 0 },
-      "documentation":        { "ac_pass": 0, "ac_fail": 0, "total": 0 },
-      "code_implementation":  { "ac_pass": 0, "ac_fail": 0, "total": 0 },
-      "testing":              { "ac_pass": 0, "ac_fail": 0, "total": 0 },
-      "refactoring":          { "ac_pass": 0, "ac_fail": 0, "total": 0 }
+      "shell_scripting":     { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "documentation":       { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "code_implementation": { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "testing":             { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "refactoring":         { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "ui_component":        { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "styling":             { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "api_backend":         { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "database":            { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "security":            { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "devops":              { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "config":              { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "data_processing":     { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "analysis":            { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "fail_reasons": { "SCOPE_VIOLATION": 0, "AC_INCOMPLETE": 0, "SEC_PATTERN": 0, "FILE_MISSING": 0, "VERIFY_CMD_FAIL": 0 }
     },
     "codex": {
-      "shell_scripting":      { "ac_pass": 0, "ac_fail": 0, "total": 0 },
-      "documentation":        { "ac_pass": 0, "ac_fail": 0, "total": 0 },
-      "code_implementation":  { "ac_pass": 0, "ac_fail": 0, "total": 0 },
-      "testing":              { "ac_pass": 0, "ac_fail": 0, "total": 0 },
-      "refactoring":          { "ac_pass": 0, "ac_fail": 0, "total": 0 }
+      "shell_scripting":     { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "documentation":       { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "code_implementation": { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "testing":             { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "refactoring":         { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "ui_component":        { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "styling":             { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "api_backend":         { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "database":            { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "security":            { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "devops":              { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "config":              { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "data_processing":     { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "analysis":            { "ac_pass": 0, "ac_fail": 0, "total": 0 },
+      "fail_reasons": { "SCOPE_VIOLATION": 0, "AC_INCOMPLETE": 0, "SEC_PATTERN": 0, "FILE_MISSING": 0, "VERIFY_CMD_FAIL": 0 }
     }
   }
 }'
@@ -100,6 +131,7 @@ fi
 
 # ─── JSON 업데이트 ────────────────────────────────────────────────────────────
 NOW="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+FAIL_REASON="${FAIL_REASON:-}"
 
 UPDATED_JSON="$(jq \
   --arg agent "$AGENT" \
@@ -107,11 +139,17 @@ UPDATED_JSON="$(jq \
   --argjson ac_pass "$AC_PASS" \
   --argjson ac_fail "$AC_FAIL" \
   --arg now "$NOW" \
+  --arg fail_reason "$FAIL_REASON" \
   '
   .last_updated = $now |
+  .agents[$agent][$task_type] //= {"ac_pass":0,"ac_fail":0,"total":0} |
   .agents[$agent][$task_type].ac_pass += $ac_pass |
   .agents[$agent][$task_type].ac_fail += $ac_fail |
-  .agents[$agent][$task_type].total   = (.agents[$agent][$task_type].ac_pass + .agents[$agent][$task_type].ac_fail)
+  .agents[$agent][$task_type].total   = (.agents[$agent][$task_type].ac_pass + .agents[$agent][$task_type].ac_fail) |
+  if ($fail_reason != "") then
+    .agents[$agent].fail_reasons //= {} |
+    .agents[$agent].fail_reasons[$fail_reason] = ((.agents[$agent].fail_reasons[$fail_reason] // 0) + 1)
+  else . end
   ' "$SCORES_FILE")"
 
 echo "$UPDATED_JSON" > "$SCORES_FILE"

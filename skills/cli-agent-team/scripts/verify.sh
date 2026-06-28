@@ -24,6 +24,10 @@ REPORT_FILE="$PROJECT_DIR/_agent_reports/$TASK_ID/REPORT.md"
 AGENT_ROLES="$PROJECT_DIR/AGENT_ROLES.md"
 
 FAILED=0
+SCOPE_FAIL=0
+AC_FAIL=0
+EV_FAIL=0
+SEC_FAIL=0
 SEP="────────────────────────────────────────"
 
 echo ""
@@ -185,7 +189,17 @@ else
             esac
 
             echo "  >>  $label: $cmd"
-            if (cd "$PROJECT_DIR" && eval "$cmd" >"$TMPOUT" 2>&1); then
+            _cmd_bin=$(echo "$cmd" | sed 's/^[[:space:]]*//' | cut -d' ' -f1 | sed 's|.*/||')
+            _wl="bash sh npm npx pnpm yarn node tsc pytest cargo make bun deno go python python3 mypy jest mocha vitest mvn gradle cmake rtk"
+            _ok=false
+            for _w in $_wl; do [ "$_cmd_bin" = "$_w" ] && _ok=true && break; done
+            if [ "$_ok" = false ]; then
+                echo "  ❌ $label: 허용되지 않은 실행 파일 '$_cmd_bin'"
+                echo "       화이트리스트: $_wl"
+                FAILED=1
+                continue
+            fi
+            if (cd "$PROJECT_DIR" && bash -c "$cmd" >"$TMPOUT" 2>&1); then
                 echo "  ✅ $label 통과"
             else
                 echo "  ❌ $label 실패:"
@@ -314,5 +328,29 @@ if [ "$FAILED" -eq 0 ]; then
     exit 0
 else
     echo "[$TASK_ID] ❌ 검증 실패 — 위 항목을 FEEDBACK.md에 포함해 단계 8(재배정)으로"
+
+    # 실패 원인 코드 판별 (우선순위: 보안 > 스코프 > AC > 증거 > 검증명령)
+    if [ "${SEC_FAIL:-0}" -eq 1 ]; then _FR="SEC_PATTERN"
+    elif [ "${SCOPE_FAIL:-0}" -eq 1 ]; then _FR="SCOPE_VIOLATION"
+    elif [ "${AC_FAIL:-0}" -eq 1 ]; then _FR="AC_INCOMPLETE"
+    elif [ "${EV_FAIL:-0}" -eq 1 ]; then _FR="FILE_MISSING"
+    else _FR="VERIFY_CMD_FAIL"; fi
+
+    _TASK_TYPE_F=$(grep -m1 '^task_type:' "$TASK_FILE" 2>/dev/null \
+        | sed 's/^task_type:[[:space:]]*//' | tr -d '[:space:]' | cut -d. -f1 || true)
+    if [ -n "${_TASK_TYPE_F:-}" ]; then
+        _TASK_DIR_F="$(dirname "$REPORT_FILE")"
+        _AGENT_F=""
+        [ -f "${_TASK_DIR_F}/_agy_stdout.log" ]     && _AGENT_F="agy"
+        [ -f "${_TASK_DIR_F}/_codex_fallback.log" ] && _AGENT_F="codex"
+        [ -f "${_TASK_DIR_F}/_codex_stdout.log" ] && [ -z "$_AGENT_F" ] && _AGENT_F="codex"
+        SCRIPT_DIR_F="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        if [ -n "${_AGENT_F:-}" ] && command -v jq >/dev/null 2>&1; then
+            FAIL_REASON="$_FR" bash "${SCRIPT_DIR_F}/record-score.sh" \
+                "$_AGENT_F" "$_TASK_TYPE_F" "0" "0" "$PROJECT_DIR" 2>/dev/null \
+                && echo "  [자동] record-fail: $_AGENT_F / $_TASK_TYPE_F / reason=$_FR" \
+                || true
+        fi
+    fi
     exit 1
 fi

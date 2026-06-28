@@ -229,6 +229,17 @@ run_cli_logged() {
   return "$exit_code"
 }
 
+log_attempt_header() {
+  mkdir -p "$(dirname "$LOG_FILE")"
+  local _n=1
+  if [ -f "$LOG_FILE" ]; then
+    local _c
+    _c=$(grep -c "^--- 시도 " "$LOG_FILE" 2>/dev/null) || _c=0
+    _n=$(( _c + 1 ))
+  fi
+  printf "\n--- 시도 %d (%s) %s ---\n" "$_n" "$MODE" "$(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+}
+
 if [ ! -f "$TASK_FILE" ]; then
   log_error "$TASK_ID" "$CLI" "TASK.md not found: $TASK_FILE"
   echo "ERROR: $TASK_FILE not found (cwd=$(pwd)). Write the TASK.md before dispatching." >&2
@@ -290,19 +301,20 @@ case "$CLI" in
       fast)    CODEX_MODEL="gpt-5.4-mini" ;;
       quality) CODEX_MODEL="gpt-5.5" ;;
     esac
+    log_attempt_header
     case "$AUTH_MODE" in
       full)
         if [ "$MODE" = "feedback" ]; then
-          run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" resume --last --dangerously-bypass-approvals-and-sandbox "$MSG"
+          run_cli_logged append run_with_timeout codex exec -m "$CODEX_MODEL" resume --last --dangerously-bypass-approvals-and-sandbox "$MSG"
         else
-          run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" --dangerously-bypass-approvals-and-sandbox "$MSG"
+          run_cli_logged append run_with_timeout codex exec -m "$CODEX_MODEL" --dangerously-bypass-approvals-and-sandbox "$MSG"
         fi
         ;;
       limited)
         if [ "$MODE" = "feedback" ]; then
-          run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" resume --last "$MSG"
+          run_cli_logged append run_with_timeout codex exec -m "$CODEX_MODEL" resume --last "$MSG"
         else
-          run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" "$MSG"
+          run_cli_logged append run_with_timeout codex exec -m "$CODEX_MODEL" "$MSG"
         fi
         ;;
       *)
@@ -334,6 +346,7 @@ case "$CLI" in
     AGY_FLAGS=(--model "$AGY_MODEL" --print-timeout 20m)
     [ "$MODE" = "feedback" ] && AGY_FLAGS=(--continue "${AGY_FLAGS[@]}")
     [ "$AUTH_MODE" = "full" ] && AGY_FLAGS=("${AGY_FLAGS[@]}" --dangerously-skip-permissions)
+    log_attempt_header
     run_cli_logged append node "$PTY_BRIDGE" agy "$LOG_FILE" "$AGY_TIMEOUT_MS" -- --print "$MSG" "${AGY_FLAGS[@]}"
     ;;
   claude)
@@ -364,11 +377,12 @@ if [ "$CLI" = "agy" ] && [ "$MODE" = "execute" ]; then
       esac
       CLI="codex"
       LOG_FILE="${TASK_DIR}/_codex_fallback.log"
+      log_attempt_header
       if [ "$AUTH_MODE" = "full" ]; then
-        run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" \
+        run_cli_logged append run_with_timeout codex exec -m "$CODEX_MODEL" \
           --dangerously-bypass-approvals-and-sandbox "$MSG"
       else
-        run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" "$MSG"
+        run_cli_logged append run_with_timeout codex exec -m "$CODEX_MODEL" "$MSG"
       fi
     else
       echo "[dispatch] ⚠ agy 빈 출력 감지, codex 미설치/비활성 — fallback 불가" >&2

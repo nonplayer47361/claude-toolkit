@@ -129,6 +129,21 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 ---
 
+## M8 — 보안·확장성·사용성 강화 (2026-06-29)
+
+### 완료
+
+| ID | 설명 | 내용 |
+|----|------|------|
+| T-M8-EVAL | verify.sh: `eval "$cmd"` → 화이트리스트 + `bash -c` 교체 (보안) | |
+| T-M8-LOG | dispatch.sh: agy/codex 로그 append 통일 + 시도 헤더 삽입 | |
+| T-M8-FAIL | verify.sh + record-score.sh: 실패 원인 코드 체계 (fail_reasons) | |
+| T-M8-TYPE | record-score.sh: task_type 5종 → 14종 세분화 (플랫) | |
+| T-M8-CLI | agent-team.sh: 통합 CLI 래퍼 신규 생성 | |
+| T-M8-DOCS | docs/quickstart.md: 5분 안에 첫 태스크 가이드 | |
+
+---
+
 ## 남은 작업
 
 ### 인프라 설치 완료 현황
