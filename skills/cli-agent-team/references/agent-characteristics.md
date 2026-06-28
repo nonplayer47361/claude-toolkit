@@ -47,16 +47,20 @@
 
 ---
 
-### Antigravity CLI — agy (Google Gemini 기반)
+### Antigravity CLI — agy
+
+> ⚠️ **모델 불일치 주의**: 이 문서는 Gemini 기반으로 기술돼 있었으나,
+> `dispatch.sh`의 실제 모델 티어 ID는 Anthropic Claude 계열(`claude-haiku-*`, `claude-sonnet-*`)을 사용한다.
+> agy가 실제로 어떤 모델을 사용하는지는 `scripts/probe-cli.sh agy full`로 확인 후 이 표를 갱신하라.
 
 | 항목 | 내용 |
 |------|------|
-| 기반 모델 | Google Gemini (1.5 Pro / 2.0 계열) |
-| 리셋 주기 | Google AI 정책 기준 (분당·일당 한도) |
-| 컨텍스트 | 최대 1M tokens — 세 에이전트 중 가장 큰 컨텍스트 |
+| 기반 모델 | **미확인** — dispatch.sh 기준: fast=`claude-haiku-4-5-20251001`, quality=`claude-sonnet-4-6` |
+| 리셋 주기 | 실제 모델 공급사 정책에 따름 (확인 필요) |
+| 컨텍스트 | 설정된 모델에 따름 |
 | 강점 | 대형 코드베이스 전체 분석, 긴 파일 읽기, 광범위한 리팩토링 |
 | 약점 | 헤드리스 stdout 침묵 버그 (파일 쓰기는 됨 — `cli-dispatch-guide.md` 참고) |
-| 비용 특성 | 무료 티어 한도 넉넉함 (변동 있음). 대형 작업 비용 효율 좋음 |
+| 비용 특성 | 실제 모델 공급사 정책에 따름 |
 | 헤드리스 실행 | `agy --print "<msg>" --add-dir <dir> --print-timeout 20m` |
 | 세션 이어가기 | `agy --continue --print "<후속>"` |
 | 주의 | stdout이 비어도 작업은 완료됐을 수 있음 — 파일 산출물로 판단 |
