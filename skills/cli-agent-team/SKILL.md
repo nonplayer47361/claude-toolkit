@@ -570,6 +570,40 @@ TASK.md를 작성하기 전에 어느 에이전트에 배정할지 결정한다.
 - 정상 작업 시간보다 훨씬 빠른 종료 (실질적 작업 없이 exit 0)
 - agy: `--print-timeout` 초과 (지나치게 큰 작업이거나 리밋)
 
+**[단계 1.6] 적응형 스코어 보정 (데이터가 쌓인 경우)**
+
+단계 1.5에서 에이전트 E가 결정됐으면, `.agent_scores.json`을 읽어 task_type별 승률로
+배정을 **보정**한다. 단계 1.5 결정을 뒤집는 게 아니라, 데이터가 있을 때만 반영한다.
+
+```
+1. _agent_reports/.agent_scores.json 존재 확인
+   없으면 → 보정 없이 단계 1.5 결과 그대로 사용
+
+2. 현재 TASK.md의 태스크 유형(task_type) 판단:
+   shell_scripting | documentation | code_implementation | testing | refactoring
+
+3. 두 에이전트 모두 해당 task_type 데이터가 있으면:
+   agy_rate   = agy.task_type.ac_pass / agy.task_type.total
+   codex_rate = codex.task_type.ac_pass / codex.task_type.total
+
+4. 보정 기준:
+   - 데이터가 5건 미만 → 통계 불충분, 보정 없음
+   - 승률 차이가 15%p 미만 → 차이 미미, 보정 없음
+   - 승률 차이가 15%p 이상이고 데이터 5건 이상 → 승률 높은 에이전트로 보정
+
+5. 보정 발생 시 로그:
+   "[적응형] task_type=documentation: codex 91% > agy 72% (19%p 차이) → codex로 보정"
+```
+
+**태스크 완료 후 점수 기록** (단계 7 커밋 직후):
+
+```bash
+# task_type과 AC 통과/실패 수는 REPORT.md의 체크리스트에서 산출
+bash scripts/record-score.sh <agent> <task_type> <ac_pass> <ac_fail>
+```
+
+record-score.sh는 `jq` 필요. `jq` 미설치 시 skip하고 메모만 남긴다.
+
 **[단계 2] TASK.md 작성**
 
 `_agent_reports/<task-id>/TASK.md`를 작성한다 (`references/task-templates.md` 형식).

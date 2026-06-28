@@ -4,7 +4,7 @@
 # Dispatches a task to an external CLI coding agent.
 # Run with run_in_background: true and wait for the harness notification.
 #
-#   <cli>         codex | agy   (extend the case block for new CLIs)
+#   <cli>         codex | agy | auto   (extend the case block for new CLIs)
 #   <task-id>     matches _agent_reports/<task-id>/TASK.md
 #   <auth-mode>   full | limited
 #                 full    -> approval/sandbox bypass flags (only if user approved
@@ -41,10 +41,56 @@ DISPATCH_TIMEOUT="${DISPATCH_TIMEOUT:-30m}"
 
 TASK_DIR="_agent_reports/${TASK_ID}"
 TASK_FILE="${TASK_DIR}/TASK.md"
-LOG_FILE="${TASK_DIR}/_${CLI}_stdout.log"
 
 # 실제 작업 디렉토리로 이동 (상대 경로가 올바르게 동작하도록)
 cd "$DIR"
+
+REPORTS_DIR="_agent_reports"
+CONF_FILE="${REPORTS_DIR}/.cli-agent-team.conf"
+CODEX_ENABLED=true
+AGY_ENABLED=true
+CODEX_BIN="${CODEX_BIN:-}"
+AGY_BIN="${AGY_BIN:-}"
+
+if [ -f "$CONF_FILE" ]; then
+  # shellcheck source=/dev/null
+  . "$CONF_FILE"
+fi
+
+if [ -z "${CODEX_BIN:-}" ] && command -v codex >/dev/null 2>&1; then
+  CODEX_BIN="$(command -v codex)"
+fi
+if [ -z "${AGY_BIN:-}" ] && command -v agy >/dev/null 2>&1; then
+  AGY_BIN="$(command -v agy)"
+fi
+
+if [ "$CLI" = "auto" ]; then
+  if [ "${AGY_ENABLED:-true}" = "true" ] && [ -n "${AGY_BIN:-}" ]; then
+    CLI="agy"
+  elif [ "${CODEX_ENABLED:-true}" = "true" ] && [ -n "${CODEX_BIN:-}" ]; then
+    CLI="codex"
+  else
+    CLI="claude"
+  fi
+  echo "[dispatch] auto -> ${CLI} 선택"
+fi
+
+case "$CLI" in
+  codex)
+    if [ "${CODEX_ENABLED:-true}" = "false" ]; then
+      echo "ERROR: codex는 비활성 상태입니다. (setup.sh --enable-codex 로 활성화)" >&2
+      exit 1
+    fi
+    ;;
+  agy)
+    if [ "${AGY_ENABLED:-true}" = "false" ]; then
+      echo "ERROR: agy는 비활성 상태입니다. (setup.sh --enable-agy 로 활성화)" >&2
+      exit 1
+    fi
+    ;;
+esac
+
+LOG_FILE="${TASK_DIR}/_${CLI}_stdout.log"
 
 if [ ! -f "$TASK_FILE" ]; then
   echo "ERROR: $TASK_FILE not found (cwd=$(pwd)). Write the TASK.md before dispatching." >&2
@@ -127,6 +173,11 @@ case "$CLI" in
     [ "$MODE" = "feedback" ] && AGY_FLAGS=(--continue "${AGY_FLAGS[@]}")
     [ "$AUTH_MODE" = "full" ] && AGY_FLAGS=("${AGY_FLAGS[@]}" --dangerously-skip-permissions)
     node "$PTY_BRIDGE" agy "$LOG_FILE" "$AGY_TIMEOUT_MS" -- --print "$MSG" "${AGY_FLAGS[@]}" 2>&1 | tee -a "$LOG_FILE"
+    ;;
+  claude)
+    echo "ERROR: claude-direct 모드는 아직 구현 중입니다." >&2
+    echo "       codex 또는 agy 를 설치하거나 setup.sh --enable-codex 를 실행하세요." >&2
+    exit 2
     ;;
   *)
     echo "ERROR: unknown cli '$CLI'. Add a case for it here, after verifying" >&2
