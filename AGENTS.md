@@ -86,6 +86,8 @@
 | T_AGY_* | agy `--print` 실행 시 exit 0, 출력 0바이트 | TTY 없으면 응답을 터미널에 직접 씀 → 파이프 환경에서 사라짐 | `mcp-servers/pty-bridge/run.js` 경유 실행 |
 | T006 | dispatch.sh에서 `MODEL_TIER` 미정의 변수 오류 | agy가 변수 선언 없이 case 블록만 추가 | `MODEL_TIER="${6:-quality}"` 라인 수동 추가 |
 | Round1 T011 | agy가 `.gemini/antigravity-cli/scratch`에서 TASK.md 탐색 | agy 4개 병렬 실행 시 내부 컨텍스트 혼선 | 병렬 실행 2개 이하 제한 후 재실행으로 해결 |
+| run_failure_tests SIM13+ | MODEL/PTY 테스트가 실제로 실행되지 않음 | `run_test` 내 grep 파이프에 `\|\| true` 누락 → pipefail로 스크립트 종료 | grep 파이프 끝에 `\|\| true` 추가 |
+| SIM09 | `parallel-check.sh` 선행 T001 완료 확인 실패 | PLAN.md가 표 형식(`\| T001 \|`)에서 체크박스 형식(`- [x] T001:`)으로 변경됨 | grep 패턴을 양쪽 형식 지원으로 확장 |
 
 ---
 

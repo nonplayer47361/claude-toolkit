@@ -2,7 +2,8 @@
 # run_failure_tests.sh [project-dir] [skill-dir]
 #
 # cli-agent-team 스킬 실패 시나리오 E2E 테스트.
-# 18개 시나리오: 12개 실패 감지 + 1개 정상(병렬 허용) + 1개 회복(ERROR 후 재트리거) + 4개 MODEL_TIER.
+# 최대 20개 시나리오: 12개 실패 감지 + 1개 정상(병렬 허용) + 1개 회복(ERROR 후 재트리거)
+#   + 4개 MODEL_TIER + 최대 2개 PTY-bridge (node-pty 설치 시).
 # 데몬 없이 실행 가능 (testcli 격리 에이전트로 trigger.sh 테스트).
 #
 # 사용법:
@@ -64,9 +65,9 @@ run_test() {
         FAIL=$((FAIL + 1))
     fi
 
-    # 핵심 출력 1~3줄만 표시
+    # 핵심 출력 1~3줄만 표시 (grep 0건 시에도 pipefail 방지)
     echo "$out" | grep -E "(ERROR|❌|✅|WARNING|완료 섹션|파일 충돌|REPORT|TASK|스코프|미완료|실패|없음)" \
-        | head -3 | sed 's/^/      /'
+        | head -3 | sed 's/^/      /' || true
 }
 
 # 직전 run_test의 출력에서 패턴을 검증.
@@ -161,6 +162,8 @@ cleanup() {
     rm -f "$PROJECT_DIR/test-scope-violation.txt" 2>/dev/null || true
     # npm test 실패 테스트 잔재
     rm -f "$PROJECT_DIR/tests/failing_sim.test.js" 2>/dev/null || true
+    # pty-bridge 테스트 임시 출력 파일
+    rm -f "$REPORTS/.pty_test_01.txt" "$REPORTS/.pty_test_02.txt" 2>/dev/null || true
 }
 
 # 시작 전 정리
@@ -410,6 +413,31 @@ rm -f "$REPORTS/.daemon_testcli"
 run_test "MODEL04" "fail" "trigger.sh: 5번째 파라미터(fast) 전달 + 데몬 없음 → '데몬' 오류 exit 1" \
     bash "$TRIGGER" testcli T_DUMMY execute "$PROJECT_DIR" fast
 assert_output "데몬" "stderr에 '데몬' 포함 확인"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TC-PTY-01: pty-bridge — 존재하지 않는 CLI 실행 → exit non-zero
+# TC-PTY-02: pty-bridge — 타임아웃(100ms) 후 finish(1) → exit 1
+# node-pty 미설치 환경에서는 SKIP (TOTAL에 포함하지 않음)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PTY_BRIDGE_DIR="$(cd "$(dirname "$DISPATCH")/../../../mcp-servers/pty-bridge" 2>/dev/null && pwd || echo "")"
+PTY_BRIDGE_SCRIPT="${PTY_BRIDGE_DIR}/run.js"
+PTY_OUT_01="$REPORTS/.pty_test_01.txt"
+PTY_OUT_02="$REPORTS/.pty_test_02.txt"
+
+if [ -f "$PTY_BRIDGE_SCRIPT" ] && [ -d "${PTY_BRIDGE_DIR}/node_modules/node-pty" ]; then
+    run_test "PTY01" "fail" "pty-bridge: 존재하지 않는 CLI(pty_nonexistent_xyz) → exit non-zero" \
+        node "$PTY_BRIDGE_SCRIPT" pty_nonexistent_xyz "$PTY_OUT_01" 5000
+
+    run_test "PTY02" "fail" "pty-bridge: 100ms 타임아웃(node 무한루프) → exit 1" \
+        node "$PTY_BRIDGE_SCRIPT" node "$PTY_OUT_02" 100 -- -e "setInterval(()=>{},99999)"
+    assert_output "pty-bridge.*timeout" "stderr에 '[pty-bridge] timeout' 메시지 확인"
+
+    rm -f "$PTY_OUT_01" "$PTY_OUT_02"
+else
+    echo ""
+    echo "⏭  PTY01 / PTY02 SKIP — node-pty 미설치 (TOTAL 미포함)"
+    echo "   해결: cd mcp-servers/pty-bridge && npm install"
+fi
 
 # ── 최종 결과 ─────────────────────────────────────────────────────────
 echo ""

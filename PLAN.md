@@ -74,13 +74,13 @@ VS Code 마켓플레이스: `Foam` 확장 설치 (wikilink 시각화)
 
 ### 선택 작업 (우선순위 순)
 
-| 항목 | 내용 | 예상 소요 |
-|------|------|-----------|
-| E2E 파이프라인 테스트 | dispatch → pty-bridge → agy → REPORT → verify 전 구간 자동 검증 | 30분 |
-| `run_failure_tests.sh` 확장 | pty-bridge 타임아웃, MODEL_TIER 잘못된 값 테스트 추가 | 1시간 |
-| `dashboard.sh --watch` 실사용 검증 | 실제 태스크 실행 중 watch 모드 동작 확인 | 30분 |
-| Memory MCP 설치 후 지식 마이그레이션 | 이번 세션 결정 사항을 MCP에 이관 | 1시간 |
-| 새 스킬 개발 | git-helper, code-review-ko 등 | 미정 |
+| 항목 | 상태 | 내용 |
+|------|------|------|
+| `run_failure_tests.sh` 확장 | ✅ 완료 (2026-06-28) | PTY-01/02 추가, pipefail 버그 수정, parallel-check 체크박스 지원 |
+| E2E 파이프라인 테스트 | ⏳ 대기 | dispatch → pty-bridge → agy → REPORT → verify 전 구간 자동 검증 |
+| `dashboard.sh --watch` 실사용 검증 | ⏳ 대기 | 실제 태스크 실행 중 watch 모드 동작 확인 |
+| Memory MCP 설치 후 지식 마이그레이션 | ⏳ 대기 | 이번 세션 결정 사항을 MCP에 이관 |
+| 새 스킬 개발 | ⏳ 대기 | git-helper, code-review-ko 등 |
 
 ---
 

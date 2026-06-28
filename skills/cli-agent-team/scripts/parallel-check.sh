@@ -88,14 +88,16 @@ check_prereq() {
     fi
 
     # PLAN.md "## 완료" 섹션에서 선행 task-id 검색
-    # 완료 섹션 포맷: "| T001 | 작업명 | 커밋해시 | 비고 |"
+    # 완료 섹션 포맷 (양쪽 지원):
+    #   표 형식:      "| T001 | 작업명 | 커밋해시 | 비고 |"
+    #   체크박스 형식: "- [x] T001: ..."
     local done_content
     done_content=$(extract_section "$PLAN_FILE" "^## 완료")
 
     local all_done=1
     # 쉼표로 구분된 task-id 목록을 순회
     for prereq in $(echo "$prereq_clean" | tr ',' '\n' | grep -v '^$'); do
-        if echo "$done_content" | grep -q "| *${prereq} *|"; then
+        if echo "$done_content" | grep -qE "(\| *${prereq} *\||- \[x\] ${prereq}[: ])"; then
             echo "  ✅ $task_id: 선행 $prereq 완료 확인됨"
         else
             echo "  ❌ $task_id: 선행 $prereq 가 완료 섹션에 없음 — 순차 실행 필요"
