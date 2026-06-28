@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude-toolkit 종합 분석</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #1c2128;
+      --border: #30363d;
+      --accent: #388bfd;
+      --accent2: #3fb950;
+      --accent3: #d29922;
+      --accent4: #f85149;
+      --accent5: #a371f7;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --tag-bg: #1f3c5a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 0 0 80px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a2233 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 40px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(56,139,253,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 12px; }
+    .hero h1 span { color: var(--accent); }
+    .hero .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 24px; }
+    .hero-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-btn {
+      display: inline-block; padding: 9px 20px; border-radius: 6px;
+      font-size: 0.88rem; font-weight: 600; text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .hero-btn:hover { opacity: 0.8; }
+    .hero-btn.primary { background: var(--accent); color: #fff; }
+    .hero-btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .badge-blue   { background: rgba(56,139,253,0.15); border-color: rgba(56,139,253,0.35); color: #79b8ff; }
+    .badge-green  { background: rgba(63,185,80,0.15);  border-color: rgba(63,185,80,0.35);  color: #7ee787; }
+    .badge-orange { background: rgba(210,153,34,0.15); border-color: rgba(210,153,34,0.35); color: #e3b341; }
+    .badge-purple { background: rgba(163,113,247,0.15);border-color: rgba(163,113,247,0.35);color: #bc8cff; }
+    .badge-red    { background: rgba(248,81,73,0.15);  border-color: rgba(248,81,73,0.35);  color: #ff7b72; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,0.92); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 0; overflow-x: auto;
+    }
+    nav a {
+      color: var(--muted); text-decoration: none;
+      padding: 14px 18px; font-size: 0.85rem; font-weight: 500;
+      white-space: nowrap; border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    nav a:hover { color: var(--text); }
+    nav a.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ── Layout ── */
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    section {
+      padding: 56px 0 16px;
+      scroll-margin-top: 56px;
+    }
+    section + section { border-top: 1px solid var(--border); }
+
+    h2 {
+      font-size: 1.55rem; font-weight: 700; margin-bottom: 24px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    h2 .icon { font-size: 1.3rem; }
+    h3 { font-size: 1.05rem; font-weight: 700; margin: 28px 0 12px; color: var(--accent); }
+    p  { margin-bottom: 14px; color: #cdd5df; }
+
+    /* ── Cards ── */
+    .card-grid { display: grid; gap: 16px; }
+    .card-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .card-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 22px 24px;
+    }
+    .card h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+    .card p  { font-size: 0.88rem; margin: 0; }
+    .card.accent-blue   { border-left: 3px solid var(--accent); }
+    .card.accent-green  { border-left: 3px solid var(--accent2); }
+    .card.accent-orange { border-left: 3px solid var(--accent3); }
+    .card.accent-red    { border-left: 3px solid var(--accent4); }
+    .card.accent-purple { border-left: 3px solid var(--accent5); }
+
+    /* ── Code ── */
+    pre, code {
+      font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+      font-size: 0.83rem;
+    }
+    pre {
+      background: #010409; border: 1px solid var(--border);
+      border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+      margin: 16px 0; color: #c9d1d9; line-height: 1.6;
+    }
+    code {
+      background: rgba(110,118,129,0.18); border-radius: 4px;
+      padding: 2px 6px; color: #79c0ff;
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    caption {
+      text-align: left; padding: 0 0 8px;
+      font-size: 0.8rem; color: var(--muted); font-weight: 600;
+    }
+    th {
+      background: var(--surface2); color: var(--muted);
+      padding: 10px 14px; text-align: left; font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid #21262d; color: #cdd5df; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(48,54,61,0.3); }
+
+    /* ── List ── */
+    ul { padding-left: 20px; margin-bottom: 14px; }
+    ul li { margin-bottom: 6px; color: #cdd5df; font-size: 0.93rem; }
+    ul li::marker { color: var(--accent); }
+
+    /* ── Arch Diagram ── */
+    .arch-box {
+      background: #010409; border: 1px solid var(--border);
+      border-radius: 8px; padding: 24px; margin: 16px 0;
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: clamp(0.68rem, 1.2vw, 0.82rem);
+      color: #79c0ff; line-height: 1.7; overflow-x: auto;
+    }
+    .arch-box .hl-green  { color: #7ee787; }
+    .arch-box .hl-orange { color: #e3b341; }
+    .arch-box .hl-muted  { color: #8b949e; }
+
+    /* ── Flow ── */
+    .flow {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+      margin: 16px 0;
+    }
+    .flow-step {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 14px; font-size: 0.83rem; font-weight: 600;
+    }
+    .flow-arrow { color: var(--muted); font-size: 1.1rem; }
+
+    /* ── Strength / Weakness ── */
+    .sw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .sw-col  { display: flex; flex-direction: column; gap: 10px; }
+    .sw-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 18px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .sw-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+    .sw-text h5 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+    .sw-text p  { font-size: 0.83rem; color: var(--muted); margin: 0; }
+
+    /* ── Timeline ── */
+    .timeline { position: relative; padding-left: 32px; }
+    .timeline::before {
+      content: ""; position: absolute; left: 10px; top: 6px; bottom: 6px;
+      width: 2px; background: var(--border);
+    }
+    .tl-item { position: relative; margin-bottom: 24px; }
+    .tl-item::before {
+      content: ""; position: absolute; left: -26px; top: 6px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--accent); border: 2px solid var(--bg);
+    }
+    .tl-item h4 { font-size: 0.9rem; font-weight: 700; }
+    .tl-item p  { font-size: 0.85rem; color: var(--muted); margin-top: 4px; margin-bottom: 0; }
+
+    /* ── Tag ── */
+    .tag {
+      display: inline-block; background: var(--tag-bg);
+      color: #79b8ff; border-radius: 4px;
+      padding: 2px 8px; font-size: 0.78rem; font-weight: 600; margin: 2px;
+    }
+    .tag-green  { background: rgba(63,185,80,0.15);  color: #7ee787; border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; display: inline-block; }
+    .tag-orange { background: rgba(210,153,34,0.15); color: #e3b341; border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; display: inline-block; }
+    .tag-red    { background: rgba(248,81,73,0.15);  color: #ff7b72; border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; display: inline-block; }
+
+    /* ── Callout ── */
+    .callout {
+      display: flex; gap: 14px; align-items: flex-start;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-left: 4px solid var(--accent3);
+      border-radius: 8px; padding: 16px 18px; margin: 16px 0;
+    }
+    .callout.green { border-left-color: var(--accent2); }
+    .callout.red   { border-left-color: var(--accent4); }
+    .callout.blue  { border-left-color: var(--accent); }
+    .callout.purple{ border-left-color: var(--accent5); }
+    .callout-icon  { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+    .callout-body  { font-size: 0.88rem; color: #cdd5df; }
+    .callout-body strong { color: var(--text); }
+
+    /* ── Summary box ── */
+    .summary-box {
+      background: linear-gradient(135deg, #1a2233, #1c2128);
+      border: 1px solid rgba(56,139,253,0.3);
+      border-radius: 10px; padding: 28px 32px; margin: 16px 0;
+      font-size: 1rem; color: #cdd5df; line-height: 1.9;
+    }
+    .summary-box strong { color: var(--accent); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 40px 24px;
+      color: var(--muted); font-size: 0.82rem;
+      border-top: 1px solid var(--border); margin-top: 40px;
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.6rem; }
+      .sw-grid { grid-template-columns: 1fr; }
+      .card-grid.cols-3 { grid-template-columns: 1fr; }
+      nav a { padding: 12px 12px; font-size: 0.78rem; }
+      section { scroll-margin-top: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ HERO ══════════════ -->
+<div class="hero">
+  <h1><span>claude-toolkit</span> 종합 분석</h1>
+  <p class="subtitle">2026-06-28 기준 · Antigravity IDE 환경 · Windows 11</p>
+  <div class="hero-badges">
+    <span class="badge badge-blue">Claude Code 스킬</span>
+    <span class="badge badge-green">다중 에이전트 오케스트레이션</span>
+    <span class="badge badge-orange">Codex CLI + agy CLI</span>
+    <span class="badge badge-purple">MCP 서버 개발 기반</span>
+    <span class="badge badge-red">Windows / Git Bash 환경</span>
+  </div>
+  <div class="hero-actions">
+    <a class="hero-btn primary" href="#workflow">워크플로우 보기</a>
+    <a class="hero-btn secondary" href="#eval">장단점 분석</a>
+    <a class="hero-btn secondary" href="#roadmap">로드맵</a>
+  </div>
+</div>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav id="main-nav">
+  <a href="#summary">30초 요약</a>
+  <a href="#intent">프로젝트 의도</a>
+  <a href="#structure">구조</a>
+  <a href="#core-skill">핵심 스킬</a>
+  <a href="#tools">도구·MCP</a>
+  <a href="#workflow">워크플로우</a>
+  <a href="#references">참고 자료</a>
+  <a href="#fit">적용 대상</a>
+  <a href="#eval">장단점·한계</a>
+  <a href="#response">대응 전략</a>
+  <a href="#roadmap">로드맵</a>
+</nav>
+
+<div class="container">
+
+<!-- ══════════════ 0. 30초 요약 ══════════════ -->
+<section id="summary">
+  <h2><span class="icon">⚡</span> 30초 요약</h2>
+  <div class="summary-box">
+    <strong>claude-toolkit</strong>은 <strong>Claude Code</strong>를 오케스트레이터(지휘자)로 사용하고,
+    <strong>Codex CLI</strong>(OpenAI)와 <strong>agy CLI</strong>(Antigravity) 같은 외부 코딩 에이전트를
+    서브 에이전트로 배정해<br/>
+    코드 구현 → 리뷰 → 4종 자동 검증 → 커밋 흐름을 <strong>파일 기반으로 자동화</strong>하는
+    반자동/자동화 멀티 에이전트 개발 워크플로우다.<br/><br/>
+    핵심 가치는 세 가지다:
+    Claude 사용량 최소화(비용 분산),
+    에이전트별 컨텍스트 격리,
+    검증된 워크플로우 패턴을 스킬·스크립트로 패키징해 여러 프로젝트에 재사용.
+  </div>
+
+  <h3>빠른 시작 — 핵심 명령어</h3>
+  <pre><code># 1. 스킬 설치 (Windows)
+.\scripts\install-skill.ps1 -SkillName cli-agent-team
+
+# 2. 프로젝트 초기화 (PLAN.md · AGENT_ROLES.md · .session_state 자동 생성)
+bash skills/cli-agent-team/scripts/setup.sh
+
+# 3. CLI 비대화형 실행 가능 여부 검증
+bash skills/cli-agent-team/scripts/probe-cli.sh codex limited
+
+# 4. 태스크 배정 (백그라운드 실행 — Claude가 harness로 호출)
+bash skills/cli-agent-team/scripts/dispatch.sh codex T001 limited . execute
+
+# 5. 완료 검증 (4종 자동 검사)
+bash skills/cli-agent-team/scripts/verify.sh T001</code></pre>
+</section>
+
+<!-- ══════════════ 1. 프로젝트 의도 ══════════════ -->
+<section id="intent">
+  <h2><span class="icon">🎯</span> 프로젝트 의도</h2>
+
+  <p>
+    <strong>claude-toolkit</strong>은 Claude Code(Anthropic)를 단순 코딩 보조 도구가 아니라
+    <em>오케스트레이터(지휘자)</em>로 격상시켜, 외부 CLI 기반 AI 에이전트를
+    부하 에이전트로 부리는 <strong>이종(異種) 멀티 에이전트 개발 루프</strong>를
+    구축하고 여러 프로젝트에 배포하는 작업 공간이다.
+  </p>
+
+  <div class="card-grid cols-3">
+    <div class="card accent-blue">
+      <h4>① 비용 분산</h4>
+      <p>Claude 사용량은 비용 부담이 커질 수 있으므로, 구현 작업은 외부 CLI 에이전트에 위임하고 Claude는 계획·검토·승인·커밋에만 집중한다.</p>
+    </div>
+    <div class="card accent-green">
+      <h4>② 컨텍스트 격리</h4>
+      <p>단일 Claude 세션에서 긴 작업을 하면 컨텍스트 오염 가능성이 높아진다. 에이전트별 독립 프로세스로 이를 최소화한다.</p>
+    </div>
+    <div class="card accent-orange">
+      <h4>③ 재사용 패키징</h4>
+      <p>검증된 워크플로우 패턴·스크립트·문서를 Claude Code 스킬/에이전트/MCP 서버 형식으로 묶어 팀 전체에 배포한다.</p>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <span class="callout-icon">💡</span>
+    <div class="callout-body">
+      <strong>핵심 철학:</strong> 기본 오케스트레이션은 MCP 서버 없이 Bash + 스킬만으로 처리한다.
+      외부 CLI 호출은 <code>codex exec</code>, <code>agy --print</code> 명령 하나면 충분하다.
+      단, agy의 headless stdout 문제처럼 CLI 실행 환경 자체를 보정해야 하는 예외 상황에서는
+      <code>pty-bridge</code> 같은 보조 래퍼를 사용할 수 있다.
+      진짜 재사용 가치는 코드가 아니라 <em>워크플로우 지식</em>(파일 구조, 정확한 플래그, 검증된 함정 목록)에 있다.
+    </div>
+  </div>
+
+  <h3>누가 만들었나</h3>
+  <p>
+    Antigravity IDE 사용자가 실제 프로젝트(<em>Tarkov Market KO</em>)에서
+    Codex CLI + agy를 직접 자동화하며 발견한 패턴을 범용 스킬로 패키징했다.
+    토큰 비용에 민감하고 멀티 에이전트 오케스트레이션을 실전에서 검증하려는 개인 개발자.
+  </p>
+</section>
+
+<!-- ══════════════ 2. 구조 ══════════════ -->
+<section id="structure">
+  <h2><span class="icon">🏗️</span> 폴더 구조 & 설계 원칙</h2>
+
+  <div class="arch-box">
+claude-toolkit/
+├── skills/                      <span class="hl-muted"># Claude Code 스킬 (SKILL.md 단위)</span>
+│   ├── cli-agent-team/          <span class="hl-green"># ★ 핵심 스킬 — 외부 CLI 오케스트레이션</span>
+│   │   ├── SKILL.md             <span class="hl-muted"># 스킬 진입점 (Phase 0~6 정의)</span>
+│   │   ├── references/          <span class="hl-muted"># 가이드·템플릿 문서</span>
+│   │   │   ├── cli-dispatch-guide.md
+│   │   │   ├── agent-characteristics.md
+│   │   │   ├── task-templates.md
+│   │   │   ├── agents-template.md / soul-template.md
+│   │   │   ├── brief-template.md
+│   │   │   └── agent-scores-schema.md
+│   │   └── scripts/             <span class="hl-orange"># 자동화 셸 스크립트 (14개)</span>
+│   │       ├── setup.sh         <span class="hl-muted"># 신규 프로젝트 초기화</span>
+│   │       ├── dispatch.sh      <span class="hl-green"># ★ CLI 직접 배정</span>
+│   │       ├── verify.sh        <span class="hl-green"># ★ 4종 자동 검증</span>
+│   │       ├── agent-watch.ps1/sh  <span class="hl-muted"># 에이전트 데몬 (Windows / Linux)</span>
+│   │       ├── parallel-check.sh  <span class="hl-muted"># 병렬 배정 안전 판정</span>
+│   │       ├── update-state.sh  <span class="hl-muted"># 세션 상태 갱신</span>
+│   │       ├── log-event.sh     <span class="hl-muted"># 이벤트 로그 기록</span>
+│   │       ├── analyze-limits.sh / record-score.sh
+│   │       └── run_failure_tests.sh  <span class="hl-orange"># E2E 실패 시나리오 (14개)</span>
+│   └── _template/SKILL.md
+│
+├── agents/_template/agent.md
+├── mcp-servers/
+│   ├── _template/               <span class="hl-muted"># MCP 서버 시작점 (Node.js ESM)</span>
+│   └── pty-bridge/              <span class="hl-orange"># agy headless 우회 래퍼 (node-pty)</span>
+│
+└── scripts/                     <span class="hl-muted"># 설치·배포 PowerShell 스크립트</span>
+    ├── install-skill.ps1
+    ├── register-mcp.ps1
+    ├── new-skill.ps1 / new-mcp.ps1
+  </div>
+
+  <div class="card-grid cols-2">
+    <div class="card accent-blue">
+      <h4>스킬 설계 원칙</h4>
+      <p><code>skills/&lt;이름&gt;/SKILL.md</code> — 프론트매터 <code>name</code>·<code>description</code> 필수.
+      description이 system-reminder에 그대로 표시되므로 트리거 상황을 명확히 기술해야 한다.</p>
+    </div>
+    <div class="card accent-green">
+      <h4>에이전트 설계 원칙</h4>
+      <p><code>agents/&lt;이름&gt;.md</code> — <code>name</code>·<code>description</code>·<code>tools</code> 필수.
+      "프로젝트 컨텍스트" 섹션에 담당 파일 경로를 명시하는 것이 에이전트 품질을 결정한다.</p>
+    </div>
+    <div class="card accent-orange">
+      <h4>MCP 서버 설계 원칙</h4>
+      <p><code>mcp-servers/&lt;이름&gt;/</code> — Node.js ESM, stdio transport.
+      <code>@modelcontextprotocol/sdk</code> 기반. <code>register-mcp.ps1</code>으로 settings.json에 자동 등록.</p>
+    </div>
+    <div class="card accent-purple">
+      <h4>상태 관리 원칙</h4>
+      <p><code>_agent_reports/.session_state</code>가 루프 상태의 단일 출처.
+      rate limit으로 Claude가 끊겨도 이 파일 하나를 읽으면 즉시 재개 가능.
+      <strong>원자적 쓰기</strong>로 보호해야 파일 손상 위험을 줄일 수 있다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 3. 핵심 스킬 ══════════════ -->
+<section id="core-skill">
+  <h2><span class="icon">⚙️</span> 핵심 스킬: cli-agent-team</h2>
+
+  <p>
+    현재 이 저장소의 유일한 완성 스킬. Claude를 <strong>오케스트레이터</strong>로,
+    Codex CLI(OpenAI)와 Antigravity CLI/agy를 <strong>서브 에이전트</strong>로 부리는
+    반자동/자동화 개발 루프를 프로젝트에 구성한다.
+  </p>
+
+  <h3>6개 Phase 구조</h3>
+  <div class="table-wrap">
+    <table>
+      <caption>Phase 구조 — 신규 프로젝트 세팅 시 순서대로 진행</caption>
+      <thead>
+        <tr><th>Phase</th><th>이름</th><th>핵심 행동</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag">0</span></td>
+          <td>현황 확인</td>
+          <td>PLAN.md 존재 여부로 운영/신규 구축 분기. .session_state 읽어 중단된 루프 즉시 재개.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">0-A</span></td>
+          <td>아이디어 회의 <small>(선택)</small></td>
+          <td>컨텍스트 자동 감지 → MCP/스킬 스캔 → AskUserQuestion 단계별 구체화 → BRIEF.md + PLAN.md 생성.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">1</span></td>
+          <td>CLI 탐지 + 권한 확인</td>
+          <td>설치된 CLI 자동 탐지. <strong>이 프로젝트 전용</strong> 완전자율/제한자율 여부를 매번 확인. probe-cli.sh로 비대화형 실행 실측 검증.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">2</span></td>
+          <td>역할 분담 설계</td>
+          <td>프로젝트 분할 축 분석 → 라우팅 테이블 설계 → 토큰 경제 + 부하 분산 전략 수립.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">3</span></td>
+          <td>상태 저장소 생성</td>
+          <td>setup.sh로 PLAN.md · AGENT_ROLES.md · LOG.md · .session_state · .gitignore 한번에 생성.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">4~4.5</span></td>
+          <td>게이트 설계 + 루프 방식</td>
+          <td>구조적 결정 게이트 + 완료 N개 게이트. manual vs /loop 자동 재개 방식 선택.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">5</span></td>
+          <td>오케스트레이터 루프</td>
+          <td>작업 선택 → 에이전트 배정 → 검토 → 승인 → 실행 → 4종 검증 → 커밋 or 피드백의 자율 루프.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">6</span></td>
+          <td>CLAUDE.md 포인터 등록</td>
+          <td>CLAUDE.md에는 포인터만. 상세 내용은 PLAN.md / AGENT_ROLES.md가 단일 출처.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Phase 5 루프 흐름</h3>
+  <div class="flow">
+    <div class="flow-step">0 초기화<br/><small>데몬 확인</small></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">1 작업 선택<br/><small>PLAN.md 자동</small></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">1.5 에이전트 선택<br/><small>window+라우팅</small></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">1.6 점수 보정<br/><small>task_type 통계</small></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">2 TASK.md 작성</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">3 검토 디스패치<br/><small>REVIEW.md</small></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">4 Claude 자체 승인</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">5 실행 디스패치<br/><small>run_in_background</small></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">6 verify.sh<br/><small>4종 자동검증</small></div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">7 커밋 + 상태갱신</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">⟳ 반복 or 게이트</div>
+  </div>
+
+  <h3>verify.sh — 4종 자동 검증</h3>
+  <div class="table-wrap">
+    <table>
+      <caption>Phase 5 단계 6에서 Claude가 호출 — exit 0이어야 단계 7(커밋) 진행 가능</caption>
+      <thead>
+        <tr><th>#</th><th>검사 항목</th><th>판정 기준</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>스코프 초과</td><td>TASK.md "허용 파일" 외 변경 파일이 있으면 실패</td></tr>
+        <tr><td>2</td><td>AC 체크리스트</td><td>REPORT.md의 <code>- [ ]</code> 미완료 항목이 있으면 실패</td></tr>
+        <tr><td>3</td><td>자동 검증 명령어</td><td>AGENT_ROLES.md 정의 lint/test/build 명령어 실행 결과</td></tr>
+        <tr><td>4</td><td>완료 증거 파일</td><td>TASK.md 지정 파일의 존재·변경 여부 (agy stdout 침묵 대응)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════════ 4. 도구·MCP ══════════════ -->
+<section id="tools">
+  <h2><span class="icon">🧰</span> 활용 도구 · MCP · 스킬</h2>
+
+  <h3>외부 CLI 에이전트 (서브 에이전트)</h3>
+
+  <div class="callout purple">
+    <span class="callout-icon">⚠️</span>
+    <div class="callout-body">
+      <strong>agy 모델 주의:</strong> agent-characteristics.md에서 agy를 "Google Gemini 기반"으로 기술하고 있으나,
+      dispatch.sh의 <code>--model</code> 플래그에는 현재 Anthropic 계열 모델 ID가 기재되어 있다.
+      agy가 내부적으로 여러 백엔드를 지원하거나 설정값이 업데이트 중일 가능성이 있으므로,
+      실제 사용 전 <strong>자신의 agy 버전과 계정에서 지원하는 모델 ID를 직접 확인</strong>해야 한다.
+      아래 표의 모델명은 코드 내 설정값의 예시이며 확정된 공식 명칭이 아니다.
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <caption>에이전트별 특성 비교 — rate limit·컨텍스트 수치는 공급사 정책에 따라 변동됨</caption>
+      <thead>
+        <tr><th>에이전트</th><th>실행 경로</th><th>컨텍스트</th><th>강점</th><th>최적 작업</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Codex CLI</strong></td>
+          <td>OpenAI 계열 코드 모델 호출</td>
+          <td>대형</td>
+          <td>정밀 코드 생성, 구조적 리팩토링</td>
+          <td>소·중형 구현 (파일 2~5개)</td>
+        </tr>
+        <tr>
+          <td><strong>agy</strong></td>
+          <td>Antigravity CLI (백엔드 모델은 설정에 따라 다름)</td>
+          <td>최대 1M tokens</td>
+          <td>대형 코드베이스 전체 분석, 광범위 리팩토링</td>
+          <td>대형 구현·분석·문서화</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⚠️</span>
+    <div class="callout-body">
+      <strong>agy 알려진 버그:</strong> 헤드리스 모드(TTY 없이 실행)에서 stdout에 채팅 텍스트가 안 보인다
+      (tty 미감지로 인한 출력 억제로 추정). 그러나 <strong>실제 파일 쓰기 작업은 정상 수행된다.</strong>
+      이를 우회하기 위해 <code>mcp-servers/pty-bridge/</code>에 node-pty ConPTY 래퍼를 구현했다.
+      stdout이 비어 있어도 verify.sh의 4번 증거 파일 검사로 완료를 판정한다.
+    </div>
+  </div>
+
+  <h3>dispatch.sh 지원 모델 티어</h3>
+  <div class="table-wrap">
+    <table>
+      <caption>아래 모델 ID는 dispatch.sh 내 현재 설정값 예시다. 실제 사용 가능한 모델명은 CLI 버전과 계정 권한에 따라 달라질 수 있다.</caption>
+      <thead>
+        <tr><th>티어</th><th>Codex 설정값 (예시)</th><th>agy 설정값 (예시)</th><th>용도</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>fast</code></td>
+          <td>OpenAI 소형 고속 모델</td>
+          <td>Anthropic 소형 고속 모델</td>
+          <td>문서·주석·단순 수정</td>
+        </tr>
+        <tr>
+          <td><code>quality</code></td>
+          <td>OpenAI 고성능 코드 모델</td>
+          <td>Anthropic 고성능 모델</td>
+          <td>코드 구현·인증·보안 (기본값)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout red">
+    <span class="callout-icon">🔴</span>
+    <div class="callout-body">
+      <strong>agy 모델 일관성 이슈:</strong> dispatch.sh에 현재 Anthropic 모델 ID가 agy 설정값으로 기재되어 있으나,
+      agy는 Antigravity CLI(Google 기반)다. 이 값이 실제로 작동하는지, 아니면 수정이 필요한지
+      <strong>E2E 파이프라인 테스트 완료 전까지 확정할 수 없다.</strong>
+      실제 사용 시 <code>probe-cli.sh</code>로 먼저 검증할 것.
+    </div>
+  </div>
+
+  <h3>활성 MCP 서버</h3>
+  <div class="card-grid cols-3">
+    <div class="card accent-purple">
+      <h4>memory MCP</h4>
+      <p>그래프 기반 지식 저장소. 에이전트 특성·프로젝트 컨텍스트를 세션 간 보존. 별도 설치 필요.</p>
+    </div>
+    <div class="card accent-purple">
+      <h4>sequentialthinking MCP</h4>
+      <p>복잡한 에픽 분해·의존성 분석에 활용. Phase 0-A 계획 구체화 단계에서 사용. 별도 설치 필요.</p>
+    </div>
+    <div class="card accent-orange">
+      <h4>pty-bridge (내부 구현)</h4>
+      <p>node-pty ConPTY 래퍼. agy headless stdout 침묵 문제 우회용. <code>mcp-servers/pty-bridge/</code>에 위치.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 5. 워크플로우 ══════════════ -->
+<section id="workflow">
+  <h2><span class="icon">🔄</span> 전체 워크플로우 & 데이터 흐름</h2>
+
+  <div class="arch-box">
+┌─────────────────────────────────────────────────────────────┐
+│                     사용자 (Antigravity IDE)                   │
+│  /loop cli-agent-team  →  <span class="hl-orange">마일스톤 게이트에서만 개입</span>            │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ 스킬 실행
+┌──────────────────────────▼──────────────────────────────────┐
+│              <span class="hl-green">Claude Code (오케스트레이터)</span>                        │
+│  PLAN.md(작업) · AGENT_ROLES.md(역할) · .session_state(상태) │
+│  Phase 5 루프: 작업선택 → TASK.md → dispatch.sh → 검증 → 커밋│
+└──────────┬──────────────────────────┬───────────────────────┘
+           │ dispatch.sh              │ dispatch.sh
+           │ (run_in_background)      │ (run_in_background)
+┌──────────▼────────┐      ┌──────────▼────────────┐
+│   <span class="hl-green">Codex CLI</span>       │      │   <span class="hl-orange">agy (Antigravity)</span>    │
+│  OpenAI 계열       │      │  대형 컨텍스트 지원     │
+│  소·중형 구현      │      │  → pty-bridge 경유 실행 │
+│  REVIEW/REPORT.md │      │  REVIEW/REPORT.md      │
+└──────────┬────────┘      └──────────┬─────────────┘
+           └──────────┬───────────────┘
+                      │ 완료 알림 (harness)
+           ┌──────────▼────────────────────┐
+           │  <span class="hl-green">verify.sh</span> (Claude 실행)       │
+           │  1) 스코프 초과?               │
+           │  2) AC 체크리스트 완료?         │
+           │  3) 자동 검증 명령어 통과?      │
+           │  4) 증거 파일 존재·변경?        │
+           └──────────┬────────────────────┘
+                      │
+           ┌──────────▼────────────────────┐
+           │  PASS → <span class="hl-green">git commit</span> (Claude만)  │
+           │  FAIL → <span class="hl-orange">FEEDBACK.md → 재배정</span>   │
+           └───────────────────────────────┘
+  </div>
+
+  <h3>파일 기반 에이전트 통신 프로토콜</h3>
+  <pre><code>_agent_reports/
+├── .session_state           # 루프 상태 (재개의 단일 출처 — 원자적 쓰기 필요)
+├── .agent_scores.json       # 에이전트별 task_type 성능 누적 데이터
+├── .daemon_codex / .daemon_agy   # 데몬 실행 중 마커
+│
+└── T001/
+    ├── TASK.md              # 태스크 정의 (허용 파일, AC 목록 포함)
+    ├── REVIEW.md            # 에이전트 사전 검토 의견 (코드 건드리지 않음)
+    ├── TODO.md              # 에이전트 하위 작업 체크리스트
+    ├── REPORT.md            # 에이전트 완료 보고 (AC 체크리스트 포함 필수)
+    ├── FEEDBACK.md          # Claude의 재작업 지시 — 히스토리 누적 필요
+    ├── CONTRACT.md          # 멀티에이전트 인터페이스 계약
+    └── _codex_stdout.log    # 에이전트 stdout 로그</code></pre>
+
+  <div class="callout">
+    <span class="callout-icon">📋</span>
+    <div class="callout-body">
+      <strong>FEEDBACK.md 히스토리 컨텍스트:</strong> 서브 에이전트(Codex/agy)는 독립 프로세스로
+      "직전 세션에서 자신이 왜 실패했는지" 기억하지 못한다. 단순 에러 메시지만 전달하면
+      같은 코드를 다시 제출할 수 있다. FEEDBACK.md는 <strong>직전 시도 요약 + 실패 원인 + 이번에 다르게 해야 할 것</strong>을
+      회차별로 누적 기록해야 에이전트가 다른 접근 방식을 시도한다.
+    </div>
+  </div>
+
+  <h3>loop 모드 자동 재개 메커니즘</h3>
+  <div class="card-grid cols-2">
+    <div class="card accent-green">
+      <h4>정상 완료 시</h4>
+      <p>단계 7 커밋 직후 <code>ScheduleWakeup(delaySeconds=10)</code>으로 즉시 다음 태스크 시작.</p>
+    </div>
+    <div class="card accent-orange">
+      <h4>rate limit / 중단 시</h4>
+      <p>루프 시작 시 "리셋주기+300초" 장기 ScheduleWakeup을 안전망으로 예약.
+      Claude가 끊겨도 리셋 후 .session_state를 읽어 정확한 단계부터 재개.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 6. 참고 자료 ══════════════ -->
+<section id="references">
+  <h2><span class="icon">📚</span> 참고 자료 & 지식 출처</h2>
+
+  <h3>검증 범위 — 확정된 것과 추가 검증이 필요한 것</h3>
+
+  <div class="callout green">
+    <span class="callout-icon">✅</span>
+    <div class="callout-body">
+      <strong>중요:</strong> 이 프로젝트의 패턴 중 일부는 Tarkov Market KO 프로젝트에서 실전 검증됐다.
+      그러나 모든 구성 요소가 동등하게 검증된 것은 아니다. 아래 표에서 범위를 명확히 확인하라.
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <caption>검증 상태 구분 — 상태는 2026-06-28 기준</caption>
+      <thead>
+        <tr><th>구성요소</th><th>상태</th><th>근거</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>개별 CLI 호출 (Codex/agy 헤드리스 실행)</td>
+          <td><span class="tag-green">검증됨</span></td>
+          <td>probe-cli.sh로 실측 + 실전 태스크에서 동작 확인</td>
+        </tr>
+        <tr>
+          <td>TASK/REVIEW/REPORT/FEEDBACK 파일 프로토콜</td>
+          <td><span class="tag-green">검증됨</span></td>
+          <td>Tarkov Market KO 설계 조사 태스크 2건에서 완료 확인</td>
+        </tr>
+        <tr>
+          <td>일부 실전 태스크 자동 배정 (설계 조사·코드 구현)</td>
+          <td><span class="tag-green">검증됨</span></td>
+          <td>헤드리스 자동 배정으로 설계 조사 2건 + 코드 구현 1건 완료</td>
+        </tr>
+        <tr>
+          <td>적응형 배분 (window 알고리즘, task_type 스코어)</td>
+          <td><span class="tag-orange">부분 검증</span></td>
+          <td>로직은 완성됐으나 여러 세션 누적 데이터로의 검증은 진행 중</td>
+        </tr>
+        <tr>
+          <td>dispatch → pty-bridge → agy → REPORT → verify 전체 루프</td>
+          <td><span class="tag-orange">추가 검증 필요</span></td>
+          <td>pty-bridge 구현 완료, E2E 파이프라인 테스트 실행 예정</td>
+        </tr>
+        <tr>
+          <td>dashboard.sh --watch 실시간 모니터링</td>
+          <td><span class="tag-orange">추가 검증 필요</span></td>
+          <td>스크립트 구현 완료, 실사용 환경에서 동작 미확인</td>
+        </tr>
+        <tr>
+          <td>loop 모드 ScheduleWakeup 자동 재개</td>
+          <td><span class="tag-orange">추가 검증 필요</span></td>
+          <td>설계 완성, 실전 rate limit 환경에서의 end-to-end 검증 미완</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <caption>지식 출처 목록</caption>
+      <thead>
+        <tr><th>자료 유형</th><th>출처</th><th>사용 시점</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CLI 플래그 및 함정</td>
+          <td><code>references/cli-dispatch-guide.md</code> (내부 — 직접 검증)</td>
+          <td>Phase 1 CLI 탐지 시, dispatch.sh 작성 시</td>
+        </tr>
+        <tr>
+          <td>에이전트 특성·토큰 경제</td>
+          <td><code>references/agent-characteristics.md</code> (내부 — 상대적 특성 정리)</td>
+          <td>Phase 2 역할 분담 설계 시</td>
+        </tr>
+        <tr>
+          <td>파일 프로토콜 템플릿</td>
+          <td><code>references/task-templates.md</code> (내부)</td>
+          <td>TASK/REVIEW/REPORT/FEEDBACK/CONTRACT 작성 시</td>
+        </tr>
+        <tr>
+          <td>MCP SDK</td>
+          <td>@modelcontextprotocol/sdk (npmjs.com)</td>
+          <td>mcp-servers/_template 기반 서버 작성 시</td>
+        </tr>
+        <tr>
+          <td>Codex CLI</td>
+          <td>OpenAI Codex CLI (검증: --help + 실측)</td>
+          <td>Phase 1 probe-cli.sh 실행 시</td>
+        </tr>
+        <tr>
+          <td>Antigravity CLI</td>
+          <td>Antigravity CLI (검증: 직접 실측)</td>
+          <td>agy headless 버그 발견 · pty-bridge 설계 시</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════════ 7. 적용 대상 ══════════════ -->
+<section id="fit">
+  <h2><span class="icon">👥</span> 적용 대상 / 비추천 대상</h2>
+
+  <div class="table-wrap">
+    <table>
+      <caption>이 프로젝트는 모든 개발자에게 맞지 않는다 — 자신의 상황을 먼저 확인하라</caption>
+      <thead>
+        <tr><th>✅ 적합한 경우</th><th>❌ 비추천하는 경우</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>여러 AI CLI(Codex, agy 등)를 동시에 활용하는 개발자</td>
+          <td>단일 IDE 자동완성이나 채팅 보조만 원하는 사용자</td>
+        </tr>
+        <tr>
+          <td>긴 작업을 역할별(설계·구현·검증)로 분리해 운영하고 싶은 경우</td>
+          <td>파일 하나·함수 하나 수정처럼 작은 작업이 대부분인 경우</td>
+        </tr>
+        <tr>
+          <td>AI 에이전트 비용(rate limit, 사용량)을 분산·최적화하려는 경우</td>
+          <td>세팅 복잡도를 싫어하거나 빠른 결과만 원하는 경우</td>
+        </tr>
+        <tr>
+          <td>Windows + Git Bash 환경에서 CLI 자동화를 시도하는 경우</td>
+          <td>GUI 기반 워크플로우만 원하거나 CLI에 익숙하지 않은 경우</td>
+        </tr>
+        <tr>
+          <td>실전 코드베이스에서 에이전트 협업 패턴을 직접 구성하고 싶은 개발자</td>
+          <td>E2E 검증이 완전히 끝난 안정된 도구만 사용하고 싶은 경우</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════════ 8. 장단점 · 한계 ══════════════ -->
+<section id="eval">
+  <h2><span class="icon">⚖️</span> 장점 · 단점 · 한계</h2>
+
+  <div class="sw-grid">
+    <div class="sw-col">
+      <h3 style="color: var(--accent2);">✅ 장점</h3>
+      <div class="sw-item">
+        <span class="sw-icon">💰</span>
+        <div class="sw-text">
+          <h5>토큰 비용 최소화</h5>
+          <p>Claude는 오케스트레이터 역할(계획·검토·커밋)에만 집중. 오타·1~3줄 수정도 재배정해 Claude 사용량 낭비 없음.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">🧩</span>
+        <div class="sw-text">
+          <h5>이종 에이전트 조합</h5>
+          <p>서로 다른 공급사(OpenAI + Antigravity)를 조합. rate limit pool이 독립적이므로 하나가 한도 초과해도 다른 에이전트로 폴백 가능.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">🔄</span>
+        <div class="sw-text">
+          <h5>rate limit 내성</h5>
+          <p>SESSION_STATE + ScheduleWakeup 이중 안전망. Claude rate limit으로 루프가 끊겨도 정확한 단계에서 자동 재개.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">🎯</span>
+        <div class="sw-text">
+          <h5>실전 검증 패턴 (일부)</h5>
+          <p>개별 CLI 호출, 파일 프로토콜, 실전 태스크 배정은 Tarkov Market KO에서 직접 검증. 이론이 아닌 실측 데이터 기반의 알려진 함정 목록 보유.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">📊</span>
+        <div class="sw-text">
+          <h5>적응형 배분 학습</h5>
+          <p>window 알고리즘과 task_type별 성능 점수로 배정이 세션이 쌓일수록 자동 최적화. 단순 고정 비율이 아닌 데이터 기반 라우팅.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">🛡️</span>
+        <div class="sw-text">
+          <h5>엄격한 권한 관리</h5>
+          <p>완전자율 플래그를 프로젝트마다 명시적으로 확인. 한 프로젝트의 승인이 다른 프로젝트에 전이되지 않음.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sw-col">
+      <h3 style="color: var(--accent4);">❌ 단점 · 한계</h3>
+      <div class="sw-item">
+        <span class="sw-icon">🔬</span>
+        <div class="sw-text">
+          <h5>E2E 검증 미완성</h5>
+          <p>전체 자동 루프의 end-to-end 안정성 검증은 아직 진행 중이다. 일부 실전 태스크에서 검증됐지만, dispatch → pty-bridge → agy → REPORT → verify 전체 파이프라인은 추가 검증이 필요하다.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">🔀</span>
+        <div class="sw-text">
+          <h5>agy 모델 설정 불일치</h5>
+          <p>agent-characteristics.md는 agy를 "Google Gemini 기반"으로 기술하나, dispatch.sh에는 Anthropic 계열 모델 ID가 기재돼 있다. 실제 사용 전 probe-cli.sh로 직접 검증이 필요하다.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">⚡</span>
+        <div class="sw-text">
+          <h5>에이전트 반복 실패 위험</h5>
+          <p>서브 에이전트는 Stateless 독립 프로세스라 "직전 세션의 실패 이유"를 기억하지 못한다. FEEDBACK.md에 히스토리가 누적되지 않으면 같은 실수를 반복할 수 있다.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">📄</span>
+        <div class="sw-text">
+          <h5>.session_state 동시성 위험</h5>
+          <p>단일 텍스트 파일을 여러 프로세스가 동시에 읽고 쓸 경우 파일이 0바이트로 깨질 수 있다. update-state.sh의 원자적 쓰기 보호가 완전히 구현되지 않으면 루프 전체가 무너질 수 있다.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">🖥️</span>
+        <div class="sw-text">
+          <h5>Windows 환경 복잡성</h5>
+          <p>pexpect/winpty 미지원, Git Bash 한글 경로 문제, 백슬래시 따옴표 이슈 등 Windows 특유의 함정이 많다. 이를 모두 문서화하고 우회책을 구현했지만 진입 장벽이 있다.</p>
+        </div>
+      </div>
+      <div class="sw-item">
+        <span class="sw-icon">📦</span>
+        <div class="sw-text">
+          <h5>1개 스킬만 완성</h5>
+          <p>현재 cli-agent-team만 완성 상태. git-helper, code-review-ko 등은 개발 예정. MCP 서버도 템플릿 + pty-bridge 이외에는 구현된 서버 없음.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 9. 대응 전략 ══════════════ -->
+<section id="response">
+  <h2><span class="icon">🛠️</span> 한계 대응 전략</h2>
+
+  <div class="card-grid cols-2">
+    <div class="card accent-orange">
+      <h4>agy stdout 침묵 → pty-bridge</h4>
+      <p>
+        <code>mcp-servers/pty-bridge/run.js</code> — node-pty의 ConPTY를 사용해
+        agy를 가상 TTY로 실행, stdout을 로그 파일로 캡처.
+        dispatch.sh의 agy 케이스가 이 래퍼를 자동으로 경유한다.
+      </p>
+    </div>
+    <div class="card accent-blue">
+      <h4>rate limit 중단 → 이중 안전망</h4>
+      <p>
+        ① 루프 시작 시 "리셋주기+300초" 장기 ScheduleWakeup 예약.
+        ② 정상 완료 시 10초 즉시 재예약으로 덮어쓰기.
+        Claude가 언제 끊겨도 .session_state를 읽어 재개.
+      </p>
+    </div>
+    <div class="card accent-green">
+      <h4>에이전트 리밋 → 폴백 체인</h4>
+      <p>
+        소·중형: Codex → agy → Claude(최후).
+        대형·분석: agy → Codex(분할) → Claude(최후).
+        3회 피드백 미해결 시 BLOCKED 자동 처리 후 루프 유지.
+        BLOCKED 항목은 마일스톤 게이트에서 사용자에게 일괄 보고.
+      </p>
+    </div>
+    <div class="card accent-purple">
+      <h4>에이전트 반복 실패 → 히스토리 FEEDBACK</h4>
+      <p>
+        FEEDBACK.md 재작성 시 "직전 시도 요약 + 실패 원인 + 이번에 다른 접근"을
+        회차별로 누적 기록. 단순 에러 메시지만 전달하면 에이전트가 같은 코드를 재제출할 수 있다.
+      </p>
+    </div>
+    <div class="card accent-red">
+      <h4>.session_state 손상 → 원자적 쓰기</h4>
+      <p>
+        쓰기 전 백업본(.session_state.bak) 생성 후 임시 파일에 쓰고
+        성공 시 rename하는 방식으로 update-state.sh를 보호해야 한다.
+        현재 개선이 필요한 항목으로 기록됨.
+      </p>
+    </div>
+    <div class="card accent-orange">
+      <h4>dispatch.sh exit 오판 → EXIT trap</h4>
+      <p>
+        에이전트가 내부 검증 중 non-zero exit를 내도 REPORT.md에
+        완료 AC(<code>- [x]</code>)가 있으면 성공으로 처리하는
+        <code>_on_exit</code> trap이 dispatch.sh에 내장.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 10. 로드맵 ══════════════ -->
+<section id="roadmap">
+  <h2><span class="icon">🗺️</span> 개발 로드맵</h2>
+
+  <h3>완료된 작업 (2026-06-28 기준)</h3>
+  <div class="timeline">
+    <div class="tl-item">
+      <h4>Phase 1-3 문서·스크립트 강화</h4>
+      <p>cli-dispatch-guide.md, agent-characteristics.md, task-templates.md 완성. setup.sh, dispatch.sh, verify.sh 구현.</p>
+    </div>
+    <div class="tl-item">
+      <h4>pty-bridge (node-pty ConPTY 래퍼)</h4>
+      <p>agy headless stdout 침묵 문제 우회 래퍼 구현. dispatch.sh agy 케이스에 자동 연결.</p>
+    </div>
+    <div class="tl-item">
+      <h4>run_failure_tests.sh — 14개 실패 시나리오</h4>
+      <p>SIM/MODEL/PTY 카테고리 E2E 실패 시나리오 테스트 스크립트 작성.</p>
+    </div>
+    <div class="tl-item">
+      <h4>적응형 배분 시스템</h4>
+      <p>window 알고리즘, task_type 스코어링, analyze-limits.sh, record-score.sh 완성.</p>
+    </div>
+    <div class="tl-item">
+      <h4>루프 자동화</h4>
+      <p>ScheduleWakeup 기반 /loop 모드, SESSION_STATE 단일 출처 패턴, 마일스톤 게이트 자동 판정.</p>
+    </div>
+    <div class="tl-item">
+      <h4>Memory MCP + SequentialThinking MCP 설치</h4>
+      <p>세션 간 컨텍스트 보존 및 복잡한 계획 추론을 위한 MCP 서버 설치.</p>
+    </div>
+  </div>
+
+  <h3>남은 작업 및 알려진 이슈</h3>
+  <div class="card-grid cols-3">
+    <div class="card accent-red">
+      <h4>E2E 파이프라인 테스트</h4>
+      <p>dispatch → pty-bridge → agy → REPORT → verify 전체 흐름 실측 검증. agy 모델 ID 불일치 여부도 이 과정에서 확정.</p>
+    </div>
+    <div class="card accent-orange">
+      <h4>update-state.sh 원자적 쓰기</h4>
+      <p>.session_state 동시성 보호 — 백업 + 임시파일 rename 방식으로 개선 필요.</p>
+    </div>
+    <div class="card accent-orange">
+      <h4>agy 모델 ID 정합성 확인</h4>
+      <p>dispatch.sh의 agy --model 값이 실제 agy CLI 버전에서 지원되는지 probe-cli.sh로 실측 검증.</p>
+    </div>
+    <div class="card accent-blue">
+      <h4>dashboard.sh --watch 검증</h4>
+      <p>실사용 환경에서 대시보드 스크립트의 실시간 모니터링 동작 확인.</p>
+    </div>
+    <div class="card accent-purple">
+      <h4>신규 스킬 개발</h4>
+      <p>git-helper (커밋·PR·브랜치), code-review-ko (한국어 리뷰) 스킬을 이 저장소에 추가.</p>
+    </div>
+    <div class="card accent-green">
+      <h4>FEEDBACK.md 히스토리 프로토콜</h4>
+      <p>재배정 시 직전 시도 요약을 누적 주입하는 "실패 메모리 컨텍스트" 프로토콜을 task-templates.md에 명세화.</p>
+    </div>
+  </div>
+
+  <h3>기술 스택 요약</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>구성요소</th><th>기술</th><th>이유</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>스킬 정의</td><td>Markdown (SKILL.md)</td><td>Claude Code harness 표준 형식</td></tr>
+        <tr><td>자동화 스크립트</td><td>Bash (sh) + PowerShell</td><td>Bash: Git Bash / WSL, PS: Windows 네이티브</td></tr>
+        <tr><td>MCP 서버</td><td>Node.js ESM + @modelcontextprotocol/sdk</td><td>stdio transport 표준 MCP SDK</td></tr>
+        <tr><td>pty-bridge</td><td>Node.js + node-pty</td><td>ConPTY로 Windows에서 가상 TTY 제공</td></tr>
+        <tr><td>상태 관리</td><td>plain text 파일 (.session_state)</td><td>Claude가 읽기 쉽고 git 추적 가능한 최소 형식</td></tr>
+        <tr><td>성능 데이터</td><td>JSON (.agent_scores.json)</td><td>jq로 파싱 가능한 구조화된 점수 저장</td></tr>
+        <tr><td>설치 배포</td><td>PowerShell 스크립트 (.ps1)</td><td>Windows 사용자 환경에 맞는 설치 자동화</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div><!-- /container -->
+
+<footer>
+  <p>claude-toolkit 종합 분석 · 생성일: 2026-06-28 · powered by Claude Sonnet 4.6</p>
+  <p style="margin-top: 8px; color: #444d56;">
+    이 문서는 저장소 내 코드·문서·메모리 파일을 직접 분석해 작성됐습니다.
+    검증 상태가 명시된 항목 외에는 추정이 포함될 수 있습니다.
+  </p>
+</footer>
+
+<!-- ══ IntersectionObserver — nav active 하이라이트 ══ -->
+<script>
+  (function () {
+    const navLinks = document.querySelectorAll('#main-nav a');
+    const sections = document.querySelectorAll('section[id]');
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            navLinks.forEach((a) => a.classList.remove('active'));
+            const active = document.querySelector(
+              '#main-nav a[href="#' + entry.target.id + '"]'
+            );
+            if (active) {
+              active.classList.add('active');
+              active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+          }
+        });
+      },
+      { rootMargin: '-20% 0px -70% 0px' }
+    );
+
+    sections.forEach((s) => observer.observe(s));
+  })();
+</script>
+
+</body>
+</html>

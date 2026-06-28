@@ -1,3 +1,20 @@
+<div align="center">
+
+<img src="https://img.shields.io/badge/Made%20with-Vibe%20Coding-a371f7?style=for-the-badge&logo=anthropic&logoColor=white" alt="Made with Vibe Coding" />
+&nbsp;
+<img src="https://img.shields.io/badge/For-Vibe%20Coding-388bfd?style=for-the-badge&logo=github&logoColor=white" alt="For Vibe Coding" />
+
+<br/><br/>
+
+> **바이브코딩으로, 바이브코딩을 위한 개발툴을 만든다.**
+>
+> *AI와 함께 대화하며 코드를 짜는 방식 그 자체로,*
+> *더 잘 코딩할 수 있게 해주는 도구를 개발한다.*
+
+</div>
+
+---
+
 # claude-toolkit
 
 Reusable Claude Code skills, agent-loop helpers, and MCP server templates.
