@@ -120,8 +120,11 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 | ID | 설명 | 커밋 |
 |----|------|------|
-| T-M7-RETRY | dispatch.sh: agy 빈 출력 감지 → codex fallback 자동 실행 | (이번 커밋) |
-| T-M7-SCORE-AUTO | verify.sh: 검증 통과 시 AC 점수 자동 집계·기록, record-score.sh project-dir 파라미터 추가 | (이번 커밋) |
+| T-M7-RETRY | dispatch.sh: agy 빈 출력 감지 → codex fallback 자동 실행 | 2562085 |
+| T-M7-SCORE-AUTO | verify.sh: 검증 통과 시 AC 점수 자동 집계·기록, record-score.sh project-dir 파라미터 추가 | 2562085 |
+| T-M7-DOCTOR | doctor.sh: RTK·Serena·CBM 토큰 최적화 인프라 체크 추가 | e590eaf |
+| T-M7-DASHBOARD | dashboard.sh: 헤더에 RTK 토큰 절약량 표시 | 0b1f2ac |
+| T-M7-INSTALL | install-skill.ps1: --Update 플래그 — scripts/+SKILL.md만 교체, references/ 보존 | (이번 커밋) |
 
 ---
 
