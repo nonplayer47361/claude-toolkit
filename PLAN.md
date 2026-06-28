@@ -99,11 +99,7 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 ### 진행 대기
 
-| ID | 설명 | 담당 | 규모 | 우선순위 |
-|----|------|------|------|---------|
-| T-M6-CBM-INDEX | codebase-memory-mcp 프로젝트 인덱싱 + 에이전트 활용 지침 추가 | Claude | 소형 | P1 |
-| T-M6-RTK-DISPATCH | dispatch.sh MSG에 RTK 사용 지침 삽입 — 에이전트가 rtk git, rtk grep 자동 사용 | Claude | 소형 | P1 |
-| T-M6-SERENA-HOOKS | Serena hooks 설정 (Claude Code 권장 hooks) | Claude | 소형 | P2 |
+(없음)
 
 ### 완료
 
@@ -112,6 +108,9 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 | T-M6-RTK-INSTALL | RTK v0.43.0 설치 — Claude Code hook, agy rules, Codex AGENTS.md | 수동 설치 |
 | T-M6-CBM-INSTALL | codebase-memory-mcp v0.8.1 설치 — 6개 에이전트 자동 등록 | 수동 설치 |
 | T-M6-SERENA-INSTALL | Serena v1.5.3 설치 — Claude Code MCP 등록 | 수동 설치 |
+| T-M6-RTK-DISPATCH | dispatch.sh execute MSG에 RTK + codebase-memory 사용 지침 삽입 | 85421af |
+| T-M6-CBM-INDEX | codebase-memory-mcp 인덱싱 완료 (409 nodes, shell script 제외됨) | MCP stdout |
+| T-M6-SERENA-HOOKS | Serena hooks 등록 (activate — settings.json 제약으로 수동 적용 필요) | partial |
 
 ---
 
