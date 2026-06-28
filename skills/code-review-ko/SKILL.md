@@ -106,10 +106,84 @@ git diff HEAD~1          # 마지막 커밋 변경
 
 ## Phase 3: 후속 처리 (선택)
 
-리뷰 결과를 바탕으로 사용자가 원하면:
+### --fix : 수정 사항 직접 적용
 
-- `--fix` 옵션: 제안된 수정 사항 직접 적용
-- `--comment` 옵션: GitHub PR에 인라인 코멘트로 게시 (`gh api` 사용)
+사용자가 `/code-review-ko --fix` 또는 "수정 적용해줘"라고 하면:
+
+1. Phase 2 리뷰에서 **🚨 필수 수정** 항목만 추출한다 (배포 차단 이슈 우선).
+2. 각 항목을 순서대로 처리한다:
+   - `파일명:줄번호`를 파악한다.
+   - `Read` 도구로 해당 파일 전체를 읽어 맥락을 확인한다.
+   - `Edit` 도구로 제안된 코드로 교체한다.
+   - 적용 범위가 불명확하면 해당 항목은 건너뛰고 "수동 확인 필요" 목록에 남긴다.
+3. 모든 항목 처리 후 `git diff` 를 실행해 변경 내용을 출력한다.
+4. 사용자에게 결과를 보고한다:
+   ```
+   ✅ 수정 완료: N건 적용 / M건 수동 확인 필요
+   git diff 확인 후 커밋하시겠습니까?
+   ```
+5. **⚡ 권장 개선** 항목은 사용자 요청 시에만 추가로 적용한다.
+
+> **주의**: Edit 도구는 정확한 문자열 일치를 요구한다. 리뷰 이후 파일이 변경됐으면
+> 다시 `Read` 해서 현재 코드를 기준으로 수정한다.
+
+---
+
+### --comment : GitHub PR에 인라인 코멘트 게시
+
+사용자가 `/code-review-ko --comment` 또는 "PR 코멘트로 올려줘"라고 하면:
+
+**사전 확인 (실패 시 중단 후 안내):**
+
+```bash
+# gh 설치 여부
+command -v gh || echo "gh CLI 미설치 — brew install gh / winget install GitHub.CLI"
+
+# 현재 브랜치에 열린 PR이 있는지 확인
+gh pr view --json number,headRefOid,baseRefName 2>/dev/null || echo "열린 PR 없음"
+
+# owner/repo 확인
+gh repo view --json owner,name
+```
+
+**코멘트 게시 절차:**
+
+```bash
+# 변수 추출
+PR_NUMBER=$(gh pr view --json number --jq '.number')
+COMMIT_ID=$(gh pr view --json headRefOid --jq '.headRefOid')
+REPO=$(gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"')
+```
+
+각 **🚨 필수 수정** 항목과 **⚡ 권장 개선** 항목에 대해 인라인 코멘트를 게시한다:
+
+```bash
+gh api repos/"$REPO"/pulls/"$PR_NUMBER"/comments \
+  --method POST \
+  --field body="**[code-review-ko]** <리뷰 내용>" \
+  --field commit_id="$COMMIT_ID" \
+  --field path="<파일 경로>" \
+  --field line=<줄번호> \
+  --field side="RIGHT"
+```
+
+모든 항목 게시 후 PR 전체 리뷰 요약을 추가한다:
+
+```bash
+gh api repos/"$REPO"/pulls/"$PR_NUMBER"/reviews \
+  --method POST \
+  --field body="**[code-review-ko] 검토 완료** — 필수 수정 N건 / 권장 개선 M건 / 선택 제안 P건" \
+  --field event="COMMENT"
+```
+
+**에러 처리:**
+
+| 상황 | 대응 |
+|------|------|
+| `gh` 미설치 | 설치 안내 후 중단 |
+| 열린 PR 없음 | "PR이 없습니다. PR 번호를 알려주시면 직접 지정 가능합니다" |
+| `line` 필드 오류 (파일/줄 불일치) | 해당 항목만 건너뛰고, 파일 수준 코멘트로 대체 게시 |
+| API 오류 (403 등) | 오류 메시지 출력 후 나머지 항목 계속 시도 |
 
 ---
 

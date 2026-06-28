@@ -57,6 +57,38 @@ else
     echo "  ⚠️  Claude Code CLI 미설치: https://claude.ai/code"
 fi
 
+# jq check and optional install guide
+HAVE_JQ=false
+if check_cmd jq; then
+    HAVE_JQ=true
+    echo "  jq: $(jq --version)"
+else
+    echo "  ⚠️  jq 미설치 — record-score.sh(적응형 스코어)가 비활성화됩니다."
+    read -r -p "  jq를 지금 설치하시겠습니까? [y/N]: " JQ_ANSWER
+    case "$JQ_ANSWER" in
+        [Yy])
+            if check_cmd brew; then
+                echo "  📦 brew install jq 실행 중..."
+                brew install jq && echo "  ✅ jq 설치 완료" && HAVE_JQ=true
+            elif check_cmd apt-get; then
+                echo "  📦 apt-get install -y jq 실행 중..."
+                sudo apt-get install -y jq && echo "  ✅ jq 설치 완료" && HAVE_JQ=true
+            elif check_cmd yum; then
+                echo "  📦 yum install -y jq 실행 중..."
+                sudo yum install -y jq && echo "  ✅ jq 설치 완료" && HAVE_JQ=true
+            elif check_cmd pacman; then
+                echo "  📦 pacman -S --noconfirm jq 실행 중..."
+                sudo pacman -S --noconfirm jq && echo "  ✅ jq 설치 완료" && HAVE_JQ=true
+            else
+                echo "  ⚠️  패키지 관리자 감지 실패. 수동 설치: https://jqlang.github.io/jq/"
+            fi
+            ;;
+        *)
+            echo "  Skipping jq install; record-score.sh will skip score updates."
+            ;;
+    esac
+fi
+
 # ── Step 2: 스킬 설치 ─────────────────────────────────────────────────────────
 
 print_step 2 "스킬 3종 설치 → \$HOME/.claude/skills/"

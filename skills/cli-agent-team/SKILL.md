@@ -535,7 +535,10 @@ bash scripts/parallel-check.sh <T-A> <T-B> <project-dir>
   (step 3 검토는 각각 진행, step 5는 동시 dispatch, step 7은 둘 다 통과 후 하나의 커밋)
 - **exit 1** → 순차 실행 (기존 흐름 유지)
 
-병렬 dispatch 시 두 태스크의 완료 알림을 **모두** 기다린 뒤 step 6으로 진행한다.
+병렬 dispatch 시 리뷰(step 3)와 검증(step 6)은 **각각 완료 즉시** 처리한다 — 둘 다
+끝날 때까지 기다리지 않는다. 배정 순서: T-A → agy, T-B → codex 가 기본 (agy가 먼저
+도착하는 경향이 있으므로 더 큰 작업을 agy에게 준다). 커밋(step 7)만 **두 태스크가 모두
+통과한 뒤 하나의 커밋**으로 묶는다.
 어느 한쪽이 실패해도 다른 쪽 커밋은 정상 처리하고, 실패 쪽만 step 8로 넘긴다.
 
 **[단계 1.5] 에이전트 선택 — 적응형 배분**
@@ -869,6 +872,9 @@ AGENT_ROLES.md가 단일 출처):
 
   **루프 실행**
   - `scripts/dispatch.sh` — CLI 직접 배정 (review | execute | feedback 모드) [[references/cli-dispatch-guide]]
+    - `<cli>` 인수에 `auto` 를 쓰면 설치된 에이전트를 자동 선택한다:
+      agy 사용 가능 → agy, 없으면 codex, 없으면 claude(stub — 현재 미구현)
+      AGENT_ROLES.md 라우팅을 따를 수 없을 때 임시 폴백으로 쓸 수 있다.
   - `scripts/trigger.sh` — 데몬 모드에서 .pending 파일로 신호 전달
     - `PICKUP_TIMEOUT=<초>` — 데몬 수신 대기 타임아웃 (기본 30초)
     - `TASK_TIMEOUT=<초>` — 작업 전체 완료 타임아웃 (기본 5400초 = 90분)

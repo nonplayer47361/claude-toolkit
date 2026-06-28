@@ -57,6 +57,26 @@ if (-not $HaveClaude) {
     Write-Host "  ✅ claude: $(claude --version 2>$null)" -ForegroundColor Green
 }
 
+# jq check and optional install guide
+$HaveJq = Test-Command "jq"
+if (-not $HaveJq) {
+    Write-Host "  ⚠️  jq 미설치 — record-score.sh(적응형 스코어)가 비활성화됩니다." -ForegroundColor Yellow
+    $JqAnswer = Read-Host "  jq를 지금 설치하시겠습니까? (winget 사용) [y/N]"
+    if ($JqAnswer -match "^[Yy]$") {
+        Write-Host "  📦 winget install jqlang.jq 실행 중..." -ForegroundColor Gray
+        try {
+            winget install jqlang.jq --accept-source-agreements --accept-package-agreements
+            Write-Host "  ✅ jq 설치 완료 (새 터미널 세션에서 인식됩니다)" -ForegroundColor Green
+        } catch {
+            Write-Host "  ⚠️  winget 설치 실패. 수동 설치: https://jqlang.github.io/jq/" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "  ⏭️  jq 건너뜀 (record-score.sh는 skip됩니다)"
+    }
+} else {
+    Write-Host "  ✅ jq: $(jq --version)" -ForegroundColor Green
+}
+
 # ── Step 2: 스킬 설치 ─────────────────────────────────────────────────────────
 
 Write-Step 2 "스킬 3종 설치 → ~/.claude/skills/"
