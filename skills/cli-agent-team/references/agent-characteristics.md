@@ -117,6 +117,35 @@ Codex가 4번째 작업에서 리밋 → window[Codex] = 3
 | 코드 리뷰·검토 | Claude | — | — |
 | 커밋/PR | Claude (항상) | — | — |
 
+---
+
+## task_type 세분화
+
+`.agent_scores.json`의 키로 사용한다. 넓은 타입(예: `frontend`)보다 세분화된 타입이
+에이전트별 강점을 실측하는 데 훨씬 유리하다.
+
+| task_type | 설명 | 기본 배정 |
+|-----------|------|----------|
+| `frontend.ui_component` | UI 컴포넌트 신규/수정 | Codex |
+| `frontend.state_management` | 상태 관리 로직 | Codex |
+| `frontend.form_validation` | 폼·유효성 검사 | Codex |
+| `backend.api_route` | API 엔드포인트 구현 | Codex |
+| `backend.auth` | 인증·세션·권한 | Codex |
+| `backend.db_schema` | DB 스키마·마이그레이션 | agy |
+| `shell_scripting.bug_fix` | 셸 스크립트 버그 수정 | Codex |
+| `shell_scripting.new_logic` | 셸 스크립트 새 로직 구현 | agy |
+| `refactor.type_cleanup` | 타입·인터페이스 정리 | Codex |
+| `refactor.file_split` | 파일 분리·모듈화 | agy |
+| `test.unit` | 단위 테스트 작성 | Codex |
+| `test.integration` | 통합 테스트 작성 | agy |
+| `docs.readme` | README·사용법 문서 | agy |
+| `docs.architecture` | 아키텍처·설계 문서 | agy |
+| `review.security` | 보안 취약점 검토 | agy |
+| `review.performance` | 성능·최적화 검토 | agy |
+| `analysis` | 코드베이스 조사·분석 | agy |
+
+TASK.md 상단에 `task_type: <값>` 으로 명시하면 `record-score.sh`가 자동 파싱한다.
+
 > 도메인 1순위가 window 초과 상태이면 다음 우선순위로 내려간다.
 > window 내라도 연속 배정이 너무 치우치면 로테이션을 고려한다.
 
