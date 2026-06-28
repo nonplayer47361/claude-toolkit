@@ -134,9 +134,9 @@ if [ -n "$CODEX_BIN" ]; then
   if [ "$CODEX_ENABLED" = false ]; then
     CODEX_STATUS="DISABLED (--disable-codex 지정)"
   fi
-  printf "  codex   v %s   %s\n" "$CODEX_BIN" "$CODEX_STATUS"
+  printf "  codex   ✅ %s   %s\n" "$CODEX_BIN" "$CODEX_STATUS"
 else
-  printf "  codex   x 미설치 -> DISABLED\n"
+  printf "  codex   ❌ 미설치 → DISABLED\n"
 fi
 
 # agy 상태
@@ -145,12 +145,12 @@ if [ -n "$AGY_BIN" ]; then
   if [ "$AGY_ENABLED" = false ]; then
     AGY_STATUS="DISABLED (--disable-agy 지정)"
   fi
-  printf "  agy     v %s   %s\n" "$AGY_BIN" "$AGY_STATUS"
+  printf "  agy     ✅ %s   %s\n" "$AGY_BIN" "$AGY_STATUS"
 else
-  printf "  agy     x 미설치 -> DISABLED\n"
+  printf "  agy     ❌ 미설치 → DISABLED\n"
 fi
 
-printf "  claude  v (항상 활성)\n"
+printf "  claude  ✅ (항상 활성)\n"
 
 echo ""
 echo "설정 파일 저장: $CONF_FILE"

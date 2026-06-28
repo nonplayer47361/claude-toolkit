@@ -1,4 +1,4 @@
-# Skills Overview
+﻿# Skills Overview
 
 ## git-helper
 
@@ -48,10 +48,10 @@ Example output:
 ## 코드 리뷰 - 현재 diff
 
 ### 필수 수정
-- 버그/보안 이슈 없음.
+- 인증/권한 이슈 없음.
 
-### 권장 개선
-- README의 설치 명령에 macOS/Linux 경로를 함께 표시하면 온보딩이 쉬워집니다.
+### 제안 사항
+- README에 설치 명령에 macOS/Linux 경로를 함께 표시하면 더 명확합니다.
 ```
 
 ## cli-agent-team
@@ -79,14 +79,43 @@ Example setup output:
 ```text
 [cli-agent-team] setup
 ================================================================
-감지 결과:
-  codex   v /usr/local/bin/codex   ENABLED
-  agy     x 미설치 -> DISABLED
-  claude  v (항상 활성)
+검사 결과:
+  codex   ✅ /usr/local/bin/codex   ENABLED
+  agy     ❌ 미설치 → DISABLED
+  claude  ✅ (항상 활성)
 
 설정 파일 저장: _agent_reports/.cli-agent-team.conf
 ================================================================
 ```
+
+Example dashboard output:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│    Agent Dashboard — 2026-06-28 11:30:00                     │
+└──────────────────────────────────────────────────────────────┘
+
+[에이전트]
+  codex   ● RUNNING
+  agy     ● RUNNING
+
+[태스크]
+  TASK_ID        STATUS                 AGENT    UPDATED
+  T002           🔄 IN_PROGRESS         agy      06-28 11:28
+  T001           ✅ DONE               codex    06-28 11:15
+```
+
+### Adaptive Scoring
+
+After each task, Claude records the result:
+
+```bash
+bash skills/cli-agent-team/scripts/record-score.sh agy shell_scripting 7 0
+```
+
+Scores accumulate in `_agent_reports/.agent_scores.json`. When an agent leads
+by more than 15 percentage points on a given task type (minimum 5 samples),
+Claude prefers that agent for similar future tasks.
 
 Notes:
 
