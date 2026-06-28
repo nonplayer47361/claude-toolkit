@@ -17,14 +17,14 @@ Claude Code를 바로 쓸 수 있는 설치형 스킬 모음입니다. Windows P
 ### 1. Clone
 
 ```powershell
-git clone https://github.com/YOUR_GITHUB_USERNAME/claude-toolkit.git
+git clone https://github.com/nonplayer47361/claude-toolkit.git
 cd claude-toolkit
 ```
 
 macOS/Linux:
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/claude-toolkit.git
+git clone https://github.com/nonplayer47361/claude-toolkit.git
 cd claude-toolkit
 ```
 
