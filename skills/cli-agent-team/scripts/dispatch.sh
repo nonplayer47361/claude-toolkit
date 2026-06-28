@@ -349,3 +349,30 @@ case "$CLI" in
     exit 1
     ;;
 esac
+
+# ── agy 빈 출력 → codex fallback (자동 재시도) ────────────────────────────
+if [ "$CLI" = "agy" ] && [ "$MODE" = "execute" ]; then
+  _REPORT="${TASK_DIR}/REPORT.md"
+  _REPORT_TS=$(stat -c %Y "$_REPORT" 2>/dev/null || stat -f %m "$_REPORT" 2>/dev/null || echo 0)
+  if [ ! -f "$_REPORT" ] || [ "${_REPORT_TS:-0}" -le "${DISPATCH_START_TS:-0}" ]; then
+    if [ "${CODEX_ENABLED:-true}" = "true" ] && command -v "${CODEX_BIN:-codex}" >/dev/null 2>&1; then
+      echo "[dispatch] ⚠ agy 빈 출력 감지 (REPORT.md 없음/미갱신) → codex fallback 실행" >&2
+      log_error "$TASK_ID" "agy" "empty output — codex fallback"
+      case "$MODEL_TIER" in
+        fast)    CODEX_MODEL="gpt-5.4-mini" ;;
+        quality) CODEX_MODEL="gpt-5.5" ;;
+      esac
+      CLI="codex"
+      LOG_FILE="${TASK_DIR}/_codex_fallback.log"
+      if [ "$AUTH_MODE" = "full" ]; then
+        run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" \
+          --dangerously-bypass-approvals-and-sandbox "$MSG"
+      else
+        run_cli_logged write run_with_timeout codex exec -m "$CODEX_MODEL" "$MSG"
+      fi
+    else
+      echo "[dispatch] ⚠ agy 빈 출력 감지, codex 미설치/비활성 — fallback 불가" >&2
+      log_error "$TASK_ID" "agy" "empty output, codex fallback 불가"
+    fi
+  fi
+fi

@@ -22,12 +22,13 @@ if ! command -v jq &>/dev/null; then
 fi
 
 # ─── 인수 파싱 ───────────────────────────────────────────────────────────────
-if [[ $# -ne 4 ]]; then
-  echo "Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail>" >&2
-  echo "  agent     : agy | codex" >&2
-  echo "  task_type : shell_scripting | documentation | code_implementation | testing | refactoring" >&2
-  echo "  ac_pass   : 통과한 AC 수 (정수)" >&2
-  echo "  ac_fail   : 실패한 AC 수 (정수)" >&2
+if [[ $# -lt 4 ]] || [[ $# -gt 5 ]]; then
+  echo "Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail> [project-dir]" >&2
+  echo "  agent       : agy | codex" >&2
+  echo "  task_type   : shell_scripting | documentation | code_implementation | testing | refactoring" >&2
+  echo "  ac_pass     : 통과한 AC 수 (정수)" >&2
+  echo "  ac_fail     : 실패한 AC 수 (정수)" >&2
+  echo "  project-dir : (선택) 점수 파일 위치 기준 프로젝트 경로" >&2
   exit 1
 fi
 
@@ -35,6 +36,9 @@ AGENT="$1"
 TASK_TYPE="$2"
 AC_PASS="$3"
 AC_FAIL="$4"
+if [[ -n "${5:-}" ]]; then
+  SCORES_FILE="${5}/_agent_reports/.agent_scores.json"
+fi
 
 # ─── 인수 유효성 검사 ────────────────────────────────────────────────────────
 is_valid_agent=false

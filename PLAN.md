@@ -114,6 +114,17 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 ---
 
+## M7 — 안정성·적응형 강화 (2026-06-29~)
+
+### 완료
+
+| ID | 설명 | 커밋 |
+|----|------|------|
+| T-M7-RETRY | dispatch.sh: agy 빈 출력 감지 → codex fallback 자동 실행 | (이번 커밋) |
+| T-M7-SCORE-AUTO | verify.sh: 검증 통과 시 AC 점수 자동 집계·기록, record-score.sh project-dir 파라미터 추가 | (이번 커밋) |
+
+---
+
 ## 남은 작업
 
 ### 인프라 설치 완료 현황

@@ -291,6 +291,26 @@ echo ""
 echo "$SEP"
 if [ "$FAILED" -eq 0 ]; then
     echo "[$TASK_ID] ✅ 전체 검증 통과 — 단계 7(커밋)으로 진행"
+
+    # AC 점수 자동 집계 → record-score.sh 호출 (jq 필요, task_type 인식 시에만)
+    _TASK_TYPE=$(grep -m1 '^task_type:' "$TASK_FILE" 2>/dev/null \
+        | sed 's/^task_type:[[:space:]]*//' | tr -d '[:space:]' | cut -d. -f1 || true)
+    if [ -n "${_TASK_TYPE:-}" ]; then
+        _TASK_DIR="$(dirname "$REPORT_FILE")"
+        _AC_PASS=$(grep -cE '^\s*- \[x\]' "$REPORT_FILE" 2>/dev/null || echo 0)
+        _AC_FAIL=$(grep -cE '^\s*- \[ \]' "$REPORT_FILE" 2>/dev/null || echo 0)
+        _AGENT=""
+        [ -f "${_TASK_DIR}/_agy_stdout.log" ]     && _AGENT="agy"
+        [ -f "${_TASK_DIR}/_codex_fallback.log" ] && _AGENT="codex"
+        [ -f "${_TASK_DIR}/_codex_stdout.log" ] && [ -z "$_AGENT" ] && _AGENT="codex"
+        SCRIPT_DIR_V="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        if [ -n "${_AGENT:-}" ] && command -v jq >/dev/null 2>&1; then
+            bash "${SCRIPT_DIR_V}/record-score.sh" "$_AGENT" "$_TASK_TYPE" \
+                "${_AC_PASS:-0}" "${_AC_FAIL:-0}" "$PROJECT_DIR" 2>/dev/null \
+                && echo "  [자동] record-score: $_AGENT / $_TASK_TYPE / pass=${_AC_PASS} fail=${_AC_FAIL}" \
+                || echo "  [자동] record-score skip (task_type 불인식 또는 오류)"
+        fi
+    fi
     exit 0
 else
     echo "[$TASK_ID] ❌ 검증 실패 — 위 항목을 FEEDBACK.md에 포함해 단계 8(재배정)으로"
