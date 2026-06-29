@@ -59,6 +59,55 @@ else
   PROJECT_ROOT="$_SCRIPT_FALLBACK_ROOT"
 fi
 SCORES_FILE="$PROJECT_ROOT/_agent_reports/.agent_scores.json"
+LOCK_FILE="${SCORES_FILE}.lock"
+LOCK_DIR="${SCORES_FILE}.lockdir"
+_LOCK_MODE=""
+
+release_scores_lock() {
+  case "${_LOCK_MODE:-}" in
+    flock)
+      exec 9>&-
+      ;;
+    mkdir)
+      rmdir "$LOCK_DIR" 2>/dev/null || true
+      ;;
+  esac
+  _LOCK_MODE=""
+}
+
+acquire_scores_lock() {
+  mkdir -p "$(dirname "$SCORES_FILE")"
+
+  if command -v flock >/dev/null 2>&1; then
+    _LOCK_MODE="flock"
+    exec 9>"$LOCK_FILE"
+    if ! flock -w 10 9; then
+      exec 9>&-
+      _LOCK_MODE=""
+      echo "ERROR: 점수 파일 락 획득 실패 (10초 타임아웃): $LOCK_FILE" >&2
+      exit 1
+    fi
+  else
+    _LOCK_MODE="mkdir"
+    local lock_acquired=false
+    for ((_i = 1; _i <= 20; _i++)); do
+      if mkdir "$LOCK_DIR" 2>/dev/null; then
+        lock_acquired=true
+        break
+      fi
+      sleep 0.5
+    done
+    if [[ "$lock_acquired" != true ]]; then
+      _LOCK_MODE=""
+      echo "ERROR: 점수 파일 락 획득 실패 (10초 타임아웃): $LOCK_DIR" >&2
+      exit 1
+    fi
+  fi
+
+  trap 'release_scores_lock' EXIT
+  trap 'release_scores_lock; exit 130' INT
+  trap 'release_scores_lock; exit 143' TERM
+}
 
 # ─── 인수 유효성 검사 ────────────────────────────────────────────────────────
 is_valid_agent=false
@@ -132,6 +181,8 @@ INITIAL_SCHEMA='{
 }'
 
 # ─── 점수 파일 읽기 (없으면 초기 스키마 생성) ────────────────────────────────
+acquire_scores_lock
+
 if [[ ! -f "$SCORES_FILE" ]]; then
   mkdir -p "$(dirname "$SCORES_FILE")"
   echo "$INITIAL_SCHEMA" > "$SCORES_FILE"
@@ -162,6 +213,8 @@ UPDATED_JSON="$(jq \
   ' "$SCORES_FILE")"
 
 echo "$UPDATED_JSON" > "$SCORES_FILE"
+release_scores_lock
+trap - EXIT INT TERM
 
 # ─── 요약 출력 ────────────────────────────────────────────────────────────────
 NEW_PASS="$(echo "$UPDATED_JSON" | jq ".agents[\"$AGENT\"][\"$TASK_TYPE\"].ac_pass")"

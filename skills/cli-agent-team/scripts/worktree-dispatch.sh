@@ -37,6 +37,24 @@ WORKTREE_ROOT="$PROJECT_DIR/_worktrees"
 WORKTREE_DIR="$WORKTREE_ROOT/$TASK_ID"
 BRANCH="worktree/$TASK_ID"
 
+# cleanup 변수 — worktree 생성 후 설정됨 (생성 전은 빈 문자열로 안전)
+WORKTREE_PATH=""
+BRANCH_NAME=""
+
+# 정리 함수 — EXIT/INT/TERM 시 자동 호출
+_cleanup_worktree() {
+  local exit_code=$?
+  if [ -n "${WORKTREE_PATH:-}" ] && [ -d "$WORKTREE_PATH" ]; then
+    echo "[worktree] 정리 중: $WORKTREE_PATH" >&2
+    git -C "$PROJECT_DIR" worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true
+  fi
+  if [ -n "${BRANCH_NAME:-}" ]; then
+    git -C "$PROJECT_DIR" branch -D "$BRANCH_NAME" 2>/dev/null || true
+  fi
+  exit $exit_code
+}
+trap '_cleanup_worktree' EXIT INT TERM
+
 # ── 사전 조건 ──────────────────────────────────────────────────────────
 if [ ! -f "$TASK_DIR/TASK.md" ]; then
   echo "ERROR: TASK.md 없음: $TASK_DIR/TASK.md" >&2
@@ -65,6 +83,10 @@ fi
 mkdir -p "$WORKTREE_ROOT"
 echo "[worktree] 생성: $WORKTREE_DIR (브랜치: $BRANCH)" >&2
 git -C "$PROJECT_DIR" worktree add "$WORKTREE_DIR" -b "$BRANCH" 2>&1
+
+# worktree 생성 완료 — trap이 정리 대상을 인식하도록 변수 설정
+WORKTREE_PATH="$WORKTREE_DIR"
+BRANCH_NAME="$BRANCH"
 
 # _agent_reports/<task-id>/ 를 worktree에 복사 (TASK.md 포함)
 WORKTREE_TASK_DIR="$WORKTREE_DIR/_agent_reports/$TASK_ID"
