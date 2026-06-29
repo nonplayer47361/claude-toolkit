@@ -48,20 +48,11 @@ echo "[$TASK_ID_1 || $TASK_ID_2] parallel-check 시작"
 echo "$SEP"
 
 # ── 섹션 추출 헬퍼 ──────────────────────────────────────────────────
-# awk 한글 패턴 미지원(Windows Git Bash) 우회 — grep+tail+head 사용
+# extract_section <heading> <file>
+# Returns lines under the given markdown heading until the next heading
 extract_section() {
-    local file="$1"
-    local pattern="$2"
-    local start
-    start=$(grep -n -E "$pattern" "$file" 2>/dev/null | head -1 | cut -d: -f1)
-    [ -z "$start" ] && return 0
-    local after
-    after=$(tail -n "+$((start + 1))" "$file" | grep -n "^## " | head -1 | cut -d: -f1)
-    if [ -z "$after" ]; then
-        tail -n "+$((start + 1))" "$file"
-    else
-        tail -n "+$((start + 1))" "$file" | head -n "$((after - 1))"
-    fi
+  local heading="$1" file="$2"
+  awk "/^## ${heading}/{found=1; next} found && /^## /{exit} found{print}" "$file"
 }
 
 # ── 전제 조건 ─────────────────────────────────────────────────────────
@@ -106,7 +97,7 @@ check_prereq() {
     #   표 형식:      "| T001 | 작업명 | 커밋해시 | 비고 |"
     #   체크박스 형식: "- [x] T001: ..."
     local done_content
-    done_content=$(extract_section "$PLAN_FILE" "^## 완료")
+    done_content=$(extract_section "완료" "$PLAN_FILE")
 
     local all_done=1
     # 쉼표로 구분된 task-id 목록을 순회
@@ -170,7 +161,7 @@ normalize_allowed_path() {
 extract_allowed_files() {
     local task_file="$1"
     local section
-    section=$(extract_section "$task_file" "^## 허용 파일")
+    section=$(extract_section "허용 파일" "$task_file")
 
     printf '%s\n' "$section" | while IFS= read -r line; do
         [[ "$line" == "- "* ]] || continue

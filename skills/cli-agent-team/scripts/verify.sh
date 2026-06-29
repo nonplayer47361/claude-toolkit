@@ -52,20 +52,11 @@ if [ ! -s "$REPORT_FILE" ]; then
 fi
 
 # ── 섹션 추출 헬퍼 ──────────────────────────────────────────────────
-# awk 대신 grep+tail+head 사용 — Windows Git Bash에서 awk 한글 패턴 미지원 우회
+# extract_section <heading> <file>
+# Returns lines under the given markdown heading until the next heading
 extract_section() {
-    local file="$1"
-    local pattern="$2"   # grep -E 패턴 (한글 포함)
-    local start
-    start=$(grep -n -E "$pattern" "$file" 2>/dev/null | head -1 | cut -d: -f1)
-    [ -z "$start" ] && return 0
-    local after
-    after=$(tail -n "+$((start + 1))" "$file" | grep -n "^##[^#]" | head -1 | cut -d: -f1)
-    if [ -z "$after" ]; then
-        tail -n "+$((start + 1))" "$file"
-    else
-        tail -n "+$((start + 1))" "$file" | head -n "$((after - 1))"
-    fi
+  local heading="$1" file="$2"
+  awk "/^## ${heading}/{found=1; next} found && /^## /{exit} found{print}" "$file"
 }
 
 # ── 1. 스코프 초과 검사 ─────────────────────────────────────────────
@@ -73,7 +64,7 @@ extract_section() {
 echo ""
 echo "[검사 1/4] 스코프 초과"
 
-ALLOWED_SECTION=$(extract_section "$TASK_FILE" "^## 허용 파일" | grep '^- ' | sed 's/^- //' || true)
+ALLOWED_SECTION=$(extract_section "허용 파일" "$TASK_FILE" | grep '^- ' | sed 's/^- //' || true)
 
 if [ -z "$ALLOWED_SECTION" ]; then
     echo "  ⏭️  TASK.md에 '## 허용 파일' 없음 — 건너뜀"
@@ -137,7 +128,7 @@ echo ""
 echo "[검사 2/4] AC 체크리스트"
 
 # 한글(AC 체크리스트) 또는 영어(Acceptance Checklist) 모두 허용
-AC_LINES=$(extract_section "$REPORT_FILE" "^## (AC 체크리스트|Acceptance Checklist)" | grep '^\- \[' || true)
+AC_LINES=$(extract_section "(AC 체크리스트|Acceptance Checklist)" "$REPORT_FILE" | grep '^\- \[' || true)
 
 if [ -z "$AC_LINES" ]; then
     echo "  ❌ REPORT.md에 '## AC 체크리스트' (또는 Acceptance Checklist) 섹션 없음"
@@ -170,7 +161,7 @@ elif [ ! -f "$AGENT_ROLES" ]; then
     echo "  ⏭️  AGENT_ROLES.md 없음 — 건너뜀"
 else
     # 불릿(`- `) 있는 형식과 없는 형식 모두 지원: "- test: npm test" → "test: npm test"
-    VERIFY_CMDS=$(extract_section "$AGENT_ROLES" "^## 자동 검증 명령어" \
+    VERIFY_CMDS=$(extract_section "자동 검증 명령어" "$AGENT_ROLES" \
         | grep -v "^<!--" \
         | sed 's/^- //' \
         | grep '^[a-zA-Z].*:' || true)
@@ -225,7 +216,7 @@ fi
 echo ""
 echo "[검사 4/5] 완료 증거 파일"
 
-EVIDENCE_LINES=$(extract_section "$TASK_FILE" "^## 완료 증거 파일" | grep '^- ' | sed 's/^- //' || true)
+EVIDENCE_LINES=$(extract_section "완료 증거 파일" "$TASK_FILE" | grep '^- ' | sed 's/^- //' || true)
 
 if [ -z "$EVIDENCE_LINES" ]; then
     echo "  ⏭️  TASK.md에 '## 완료 증거 파일' 없음 — 건너뜀"
