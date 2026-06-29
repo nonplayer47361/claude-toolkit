@@ -100,6 +100,11 @@ bash "$SCRIPT_DIR/dispatch.sh" \
   "$CLI" "$TASK_ID" "$AUTH_MODE" "$WORKTREE_DIR" "$MODE" "$MODEL_TIER" \
   || DISPATCH_EXIT=$?
 
+if [ "$DISPATCH_EXIT" -ne 0 ]; then
+  echo "[worktree] dispatch 실패 (exit $DISPATCH_EXIT) - 메인 트리 복사 중단" >&2
+  exit "$DISPATCH_EXIT"
+fi
+
 # ── 산출물 복사 (REPORT/REVIEW/TODO) ──────────────────────────────────
 echo "[worktree] 산출물 복사 → $TASK_DIR" >&2
 for f in REPORT.md REVIEW.md TODO.md _agy_stdout.log _codex_stdout.log _codex_fallback.log; do
