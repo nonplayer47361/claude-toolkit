@@ -129,45 +129,70 @@ check_prereq "$TASK_ID_2" "$TASK_FILE_2" || FAILED=1
 echo ""
 echo "[검사 2/2] 허용 파일 충돌"
 
-get_allowed() {
-    local file="$1"
-    # awk 한글 패턴 미지원(Windows Git Bash) 우회 — grep으로 시작 줄 찾고 tail+head로 추출
-    local start
-    start=$(grep -n "^## 허용 파일" "$file" 2>/dev/null | head -1 | cut -d: -f1)
-    [ -z "$start" ] && return 0
-    local after
-    after=$(tail -n "+$((start + 1))" "$file" | grep -n "^##[^#]" | head -1 | cut -d: -f1)
-    if [ -z "$after" ]; then
-        tail -n "+$((start + 1))" "$file" | grep '^- ' | sed 's/^- //' || true
-    else
-        tail -n "+$((start + 1))" "$file" | head -n "$((after - 1))" | grep '^- ' | sed 's/^- //' || true
+normalize_allowed_path() {
+    local path="$1"
+    path="${path%$'\r'}"
+    path="${path#"${path%%[![:space:]]*}"}"
+    path="${path%"${path##*[![:space:]]}"}"
+
+    if [[ "$path" == \`*\` ]]; then
+        path="${path#\`}"
+        path="${path%\`}"
     fi
+    if [[ "$path" == \"*\" ]]; then
+        path="${path#\"}"
+        path="${path%\"}"
+    fi
+    if [[ "$path" == \'*\' ]]; then
+        path="${path#\'}"
+        path="${path%\'}"
+    fi
+
+    path="${path//\\//}"
+
+    local project_prefix
+    project_prefix="${PROJECT_DIR//\\//}"
+    project_prefix="${project_prefix%/}"
+    if [[ "$path" == "$project_prefix/"* ]]; then
+        path="${path#"$project_prefix/"}"
+    fi
+
+    while [[ "$path" == ./* ]]; do
+        path="${path#./}"
+    done
+    while [[ "$path" == */ && "$path" != "/" ]]; do
+        path="${path%/}"
+    done
+
+    printf '%s\n' "$path"
 }
 
-ALLOWED_1=$(get_allowed "$TASK_FILE_1")
-ALLOWED_2=$(get_allowed "$TASK_FILE_2")
+extract_allowed_files() {
+    local task_file="$1"
+    local section
+    section=$(extract_section "$task_file" "^## 허용 파일")
+
+    printf '%s\n' "$section" | while IFS= read -r line; do
+        [[ "$line" == "- "* ]] || continue
+        allowed_path=$(normalize_allowed_path "${line#- }")
+        [ -n "$allowed_path" ] && printf '%s\n' "$allowed_path"
+    done | sort -u
+}
+
+ALLOWED_1=$(extract_allowed_files "$TASK_FILE_1")
+ALLOWED_2=$(extract_allowed_files "$TASK_FILE_2")
 
 if [ -z "$ALLOWED_1" ] || [ -z "$ALLOWED_2" ]; then
     echo "  ⚠️  허용 파일 목록이 하나 이상 비어 있음 — 충돌 판정 불가 → 순차 실행 권장"
     FAILED=1
 else
-    CONFLICT=0
-    while IFS= read -r file1; do
-        [ -z "$file1" ] && continue
-        while IFS= read -r file2; do
-            [ -z "$file2" ] && continue
-            # 접두사 겹침 검사: 한쪽이 다른 쪽의 접두사이거나 완전히 같으면 충돌
-            if [[ "$file1" == "$file2" ]] || \
-               [[ "$file2" == "$file1"* ]] || \
-               [[ "$file1" == "$file2"* ]]; then
-                echo "  ❌ 파일 충돌: $file1  ↔  $file2"
-                CONFLICT=1
-                FAILED=1
-            fi
-        done <<< "$ALLOWED_2"
-    done <<< "$ALLOWED_1"
+    COMMON=$(comm -12 <(printf '%s\n' "$ALLOWED_1") <(printf '%s\n' "$ALLOWED_2"))
 
-    if [ "$CONFLICT" -eq 0 ]; then
+    if [ -n "$COMMON" ]; then
+        echo "  ❌ 파일 충돌:"
+        printf '%s\n' "$COMMON" | sed 's/^/     /'
+        FAILED=1
+    else
         echo "  ✅ 허용 파일 겹침 없음"
         echo "     $TASK_ID_1: $(echo "$ALLOWED_1" | tr '\n' ' ')"
         echo "     $TASK_ID_2: $(echo "$ALLOWED_2" | tr '\n' ' ')"
