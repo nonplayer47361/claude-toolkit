@@ -165,4 +165,6 @@ if [ "$CODEX_ENABLED" = false ] && [ "$AGY_ENABLED" = false ]; then
   echo ""
 fi
 
-echo "완료. 'bash scripts/agent-watch.ps1' 로 모니터를 시작하세요."
+echo "완료. 모니터를 시작하려면:"
+echo "  Windows(PowerShell): .\\scripts\\agent-watch.ps1 -Agent codex -AuthMode full"
+echo "  Linux/macOS:         bash scripts/agent-watch.sh codex full"
