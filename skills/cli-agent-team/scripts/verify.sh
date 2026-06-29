@@ -164,7 +164,9 @@ fi
 echo ""
 echo "[검사 3/4] 자동 검증 명령어"
 
-if [ ! -f "$AGENT_ROLES" ]; then
+if [ "${SCOPE_FAIL:-0}" -eq 1 ]; then
+    echo "  ⚠️  스코프 검사 실패 — 명령 실행 건너뜀 (보안)"
+elif [ ! -f "$AGENT_ROLES" ]; then
     echo "  ⏭️  AGENT_ROLES.md 없음 — 건너뜀"
 else
     # 불릿(`- `) 있는 형식과 없는 형식 모두 지원: "- test: npm test" → "test: npm test"
@@ -188,6 +190,12 @@ else
                 \(없음*|\(none*) echo "  ⏭️  $label: 정의 없음 — 건너뜀"; continue ;;
             esac
 
+            if echo "$cmd" | grep -qE '[;&|`$(){}]|&&|\|\|'; then
+                echo "  ❌ 명령 거부: 셸 메타문자 포함 — '$cmd'" >&2
+                FAILED=1
+                continue
+            fi
+
             echo "  >>  $label: $cmd"
             _cmd_bin=$(echo "$cmd" | sed 's/^[[:space:]]*//' | cut -d' ' -f1 | sed 's|.*/||')
             _wl="bash sh npm npx pnpm yarn node tsc pytest cargo make bun deno go python python3 mypy jest mocha vitest mvn gradle cmake rtk"
@@ -199,7 +207,8 @@ else
                 FAILED=1
                 continue
             fi
-            if (cd "$PROJECT_DIR" && bash -c "$cmd" >"$TMPOUT" 2>&1); then
+            read -ra _argv <<< "$cmd"
+            if (cd "$PROJECT_DIR" && "${_argv[@]}" >"$TMPOUT" 2>&1); then
                 echo "  ✅ $label 통과"
             else
                 echo "  ❌ $label 실패:"
