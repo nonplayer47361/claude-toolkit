@@ -2,7 +2,7 @@
 
 관련: [[AGENTS.md]] | [[skills/cli-agent-team/SKILL.md]]
 
-마지막 업데이트: 2026-06-28
+마지막 업데이트: 2026-06-29
 
 ---
 
@@ -141,6 +141,83 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 | T-M8-TYPE | record-score.sh: task_type 5종 → 14종 세분화 (플랫) | |
 | T-M8-CLI | agent-team.sh: 통합 CLI 래퍼 신규 생성 | |
 | T-M8-DOCS | docs/quickstart.md: 5분 안에 첫 태스크 가이드 | |
+
+---
+
+## M9 — 보안 강화 (2026-06-29~) [Critical]
+
+> 리뷰 취합본 기반. M8-EVAL이 `eval` 제거에 그쳐 화이트리스트 우회가 여전히 가능.
+> 셸 메타문자 인젝션, 권한 하드코딩, conf source 등 공격면 폐쇄.
+
+### 진행 대기
+
+| ID | 파일 | 내용 |
+|----|------|------|
+| T-M9-CROSS-AUTH | `cross-review.sh:10,24,37` | `$2`를 권한 모드로 올바르게 파싱. `dispatch.sh` 호출 시 `full` 하드코딩 제거 → 전달받은 AUTH 모드 사용. `agent-team.sh:25` 래퍼 인터페이스와 일치시킴. |
+### 완료
+
+| ID | 설명 | 커밋 |
+|----|------|------|
+| T-M9-VERIFY-SEC | verify.sh: 메타문자 차단 + 배열 실행 + 스코프 실패 시 조기 skip | e78ca64 |
+| T-M9-INIT-DEFAULT | init.sh: 기본 권한 `완전자율` → `제한된 자율` | e78ca64 |
+| T-M9-CONF-SOURCE | dispatch.sh: conf source 제거 → _parse_conf grep 파싱 교체 | c136839 |
+| T-M9-CROSS-AUTH | cross-review.sh: $2 인자 버그 수정 + full 하드코딩 제거 | 36b55a1 |
+| T-M9-TASKID-VALID | worktree-dispatch.sh: TASK_ID 형식 검증 추가 | 80ee520 |
+
+---
+
+## M10 — 이식성·경로 수정 (2026-06-29~) [High]
+
+> `dashboard.sh`와 `record-score.sh`의 `../../..` 하드코딩이 `install-skill.ps1` 설치 즉시 깨짐.
+> `dispatch.sh`·`verify.sh`의 위치 독립 방식(`[project-dir]` 인자)으로 통일.
+
+### 진행 대기
+
+| ID | 파일 | 내용 |
+|----|------|------|
+### 완료
+
+| ID | 설명 | 커밋 |
+|----|------|------|
+| T-M10-DASH-PATH | dashboard.sh: --project-dir 인자 + PROJECT_ROOT env 우선 적용 | 5b9182d |
+| T-M10-SCORE-PATH | record-score.sh: PROJECT_ROOT env > 5번째 인자 > fallback 순위 | 5b9182d |
+| T-M10-SETUP-MSG | setup.sh: bash .ps1 오류 안내 → PowerShell/bash 분리 안내 | 7e568c4 |
+| T-M10-DISPATCH-RTK | dispatch.sh: RTK/CBM 지시 command -v rtk 조건부화 | cc7f118 |
+
+---
+
+## M11 — 동시성·워크트리 안전성 (2026-06-29) [완료 5/5]
+
+> 병렬 모드에서 공유 상태 파일 손상, 실패 작업의 메인 작업트리 오염,
+> 강제 중단 시 가비지 워크트리 방치 문제 해결.
+
+### 완료
+
+| ID | 설명 | 커밋 |
+|----|------|------|
+| T-M11-LOCK | record-score.sh: flock/mkdir 락 — 병렬 호출 시 .agent_scores.json 원자화 | 125e145 |
+| T-M11-WT-CLEANUP | worktree-dispatch.sh: EXIT/INT/TERM trap — 강제 중단 시 워크트리 자동 정리 | 125e145 |
+| T-M11-WT-FAIL | worktree-dispatch.sh: dispatch 실패 시 메인 트리 복사 차단 | 6546450 |
+| T-M11-WT-DELETE | worktree-dispatch.sh: cp → rsync --delete — 삭제·rename 메인에 반영 | 851673f |
+| T-M11-WT-DIRTY | worktree-dispatch.sh: dirty 폴백 제거 → 경고 메시지로 교체 | 65a465e |
+
+---
+
+## M12 — 코드 품질·확장성 (2026-06-29) [완료 6/6]
+
+> 문서-구현 불일치 누적, 확장 비용, 코드 중복 해결.
+> 3번째 에이전트 추가 시 파일 직접 편집 없이 가능한 구조로.
+
+### 완료
+
+| ID | 설명 | 커밋 |
+|----|------|------|
+| T-M12-INIT-WIRE | agent-team.sh: usage 주석 setup.sh → init.sh 정정 | 424a8df |
+| T-M12-MODEL-CONF | dispatch.sh: 모델 ID conf 변수화 — 하드코딩 제거 | 9c18bdf |
+| T-M12-PARALLEL-ROLES | parallel-check.sh: AGENT_ROLES.md 병렬 허용 게이트 적용 | 75b2488 |
+| T-M12-PARALLEL-PATH | parallel-check.sh: 경로 기반 파일 충돌 감지 (오탐 방지) | 190bcdf |
+| T-M12-SCORE-STAT | record-score.sh + verify.sh: 실패 통계 출력 추가 | 8995067 |
+| T-M12-EXTRACT-UNIFY | verify.sh + parallel-check.sh: extract_section 함수 통일 | 65a1fbb |
 
 ---
 
