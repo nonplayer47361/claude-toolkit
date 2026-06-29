@@ -22,6 +22,20 @@ TASK_ID_1="${1:?task-id-1 필요}"
 TASK_ID_2="${2:?task-id-2 필요}"
 PROJECT_DIR="${3:-$(pwd)}"
 
+AGENT_ROLES="${PROJECT_DIR}/AGENT_ROLES.md"
+PARALLEL_ALLOWED=false
+
+if [ -f "$AGENT_ROLES" ]; then
+    if grep -qE "병렬\s*실행\s*:\s*허용|parallel\s*execution\s*:\s*allowed" "$AGENT_ROLES" 2>/dev/null; then
+        PARALLEL_ALLOWED=true
+    fi
+fi
+
+if [ "$PARALLEL_ALLOWED" != "true" ]; then
+    echo "[parallel-check] AGENT_ROLES.md에 병렬 실행 허용 설정 없음 → 순차 실행" >&2
+    exit 1
+fi
+
 TASK_FILE_1="$PROJECT_DIR/_agent_reports/$TASK_ID_1/TASK.md"
 TASK_FILE_2="$PROJECT_DIR/_agent_reports/$TASK_ID_2/TASK.md"
 PLAN_FILE="$PROJECT_DIR/PLAN.md"
