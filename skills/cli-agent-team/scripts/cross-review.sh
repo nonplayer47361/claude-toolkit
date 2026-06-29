@@ -4,10 +4,11 @@ set -euo pipefail
 # cross-review.sh — 두 에이전트(agy + codex)가 동일 태스크를 독립 리뷰 후 FINAL_DECISION.md 생성
 #
 # 사용법:
-#   bash skills/cli-agent-team/scripts/cross-review.sh <task-id> [project-dir]
+#   bash skills/cli-agent-team/scripts/cross-review.sh <task-id> <auth-mode> [project-dir]
 
-TASK_ID="${1:?사용법: cross-review.sh <task-id> [project-dir]}"
-PROJECT_DIR="${2:-$(pwd)}"
+TASK_ID="${1:?사용법: cross-review.sh <task-id> <auth-mode> [project-dir]}"
+AUTH_MODE="${2:?auth-mode 필수 (full|limited)}"
+PROJECT_DIR="${3:-$(pwd)}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TASK_DIR="$PROJECT_DIR/_agent_reports/$TASK_ID"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
@@ -21,7 +22,7 @@ echo "[cross-review] $TASK_ID — 크로스 리뷰 시작 ($TIMESTAMP)"
 
 # ── agy 리뷰 ─────────────────────────────────────────────────────────────────
 echo "[cross-review] agy 리뷰 시작..."
-if bash "$SCRIPT_DIR/dispatch.sh" agy "$TASK_ID" full "$PROJECT_DIR" review; then
+if bash "$SCRIPT_DIR/dispatch.sh" agy "$TASK_ID" "$AUTH_MODE" "$PROJECT_DIR" review; then
   if [ -f "$TASK_DIR/REVIEW.md" ]; then
     cp "$TASK_DIR/REVIEW.md" "$TASK_DIR/REVIEW_agy.md"
     echo "[cross-review] ✅ agy REVIEW_agy.md 저장"
@@ -34,7 +35,7 @@ fi
 
 # ── codex 리뷰 ───────────────────────────────────────────────────────────────
 echo "[cross-review] codex 리뷰 시작..."
-if bash "$SCRIPT_DIR/dispatch.sh" codex "$TASK_ID" full "$PROJECT_DIR" review; then
+if bash "$SCRIPT_DIR/dispatch.sh" codex "$TASK_ID" "$AUTH_MODE" "$PROJECT_DIR" review; then
   if [ -f "$TASK_DIR/REVIEW.md" ]; then
     cp "$TASK_DIR/REVIEW.md" "$TASK_DIR/REVIEW_codex.md"
     echo "[cross-review] ✅ codex REVIEW_codex.md 저장"
