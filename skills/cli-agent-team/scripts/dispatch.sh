@@ -126,6 +126,11 @@ _parse_conf() {
   grep -E "^${key}=" "$file" 2>/dev/null | head -1 | sed "s/^${key}=//;s/^['\"]//;s/['\"]$//"
 }
 
+CODEX_MODEL_FAST_DEFAULT="gpt-5.4-mini"
+CODEX_MODEL_QUALITY_DEFAULT="gpt-5.5"
+AGY_MODEL_FAST_DEFAULT="claude-haiku-4-5-20251001"
+AGY_MODEL_QUALITY_DEFAULT="claude-sonnet-4-6"
+
 if [ -f "$CONF_FILE" ]; then
   _codex_bin=$(_parse_conf "CODEX_BIN" "$CONF_FILE")
   _agy_bin=$(_parse_conf "AGY_BIN" "$CONF_FILE")
@@ -133,6 +138,14 @@ if [ -f "$CONF_FILE" ]; then
   [ -n "$_codex_bin" ] && CODEX_BIN="$_codex_bin"
   [ -n "$_agy_bin"   ] && AGY_BIN="$_agy_bin"
   [ -n "$_pty_bridge" ] && PTY_BRIDGE_PATH="$_pty_bridge"
+  _cm_fast=$(_parse_conf "CODEX_MODEL_FAST" "$CONF_FILE")
+  _cm_quality=$(_parse_conf "CODEX_MODEL_QUALITY" "$CONF_FILE")
+  _am_fast=$(_parse_conf "AGY_MODEL_FAST" "$CONF_FILE")
+  _am_quality=$(_parse_conf "AGY_MODEL_QUALITY" "$CONF_FILE")
+  [ -n "$_cm_fast" ]    && CODEX_MODEL_FAST_DEFAULT="$_cm_fast"
+  [ -n "$_cm_quality" ] && CODEX_MODEL_QUALITY_DEFAULT="$_cm_quality"
+  [ -n "$_am_fast" ]    && AGY_MODEL_FAST_DEFAULT="$_am_fast"
+  [ -n "$_am_quality" ] && AGY_MODEL_QUALITY_DEFAULT="$_am_quality"
 fi
 
 if [ -z "${CODEX_BIN:-}" ] && command -v codex >/dev/null 2>&1; then
@@ -308,8 +321,8 @@ run_with_timeout() {
 case "$CLI" in
   codex)
     case "$MODEL_TIER" in
-      fast)    CODEX_MODEL="gpt-5.4-mini" ;;
-      quality) CODEX_MODEL="gpt-5.5" ;;
+      fast)    CODEX_MODEL="$CODEX_MODEL_FAST_DEFAULT" ;;
+      quality) CODEX_MODEL="$CODEX_MODEL_QUALITY_DEFAULT" ;;
     esac
     log_attempt_header
     case "$AUTH_MODE" in
@@ -349,8 +362,8 @@ case "$CLI" in
     AGY_TIMEOUT_MS=1200000
     [ "$MODE" = "review" ] && AGY_TIMEOUT_MS=600000
     case "$MODEL_TIER" in
-      fast)    AGY_MODEL="claude-haiku-4-5-20251001" ;;
-      quality) AGY_MODEL="claude-sonnet-4-6" ;;
+      fast)    AGY_MODEL="$AGY_MODEL_FAST_DEFAULT" ;;
+      quality) AGY_MODEL="$AGY_MODEL_QUALITY_DEFAULT" ;;
     esac
     # agy 플래그 조합
     AGY_FLAGS=(--model "$AGY_MODEL" --print-timeout 20m)
@@ -382,8 +395,8 @@ if [ "$CLI" = "agy" ] && [ "$MODE" = "execute" ]; then
       echo "[dispatch] ⚠ agy 빈 출력 감지 (REPORT.md 없음/미갱신) → codex fallback 실행" >&2
       log_error "$TASK_ID" "agy" "empty output — codex fallback"
       case "$MODEL_TIER" in
-        fast)    CODEX_MODEL="gpt-5.4-mini" ;;
-        quality) CODEX_MODEL="gpt-5.5" ;;
+        fast)    CODEX_MODEL="$CODEX_MODEL_FAST_DEFAULT" ;;
+        quality) CODEX_MODEL="$CODEX_MODEL_QUALITY_DEFAULT" ;;
       esac
       CLI="codex"
       LOG_FILE="${TASK_DIR}/_codex_fallback.log"
