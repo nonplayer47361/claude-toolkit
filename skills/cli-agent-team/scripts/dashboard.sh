@@ -20,7 +20,15 @@ RESET='\033[0m'
 
 # 경로 기준 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+
+PROJECT_ROOT_ARG=""
+for arg in "$@"; do
+  case "$arg" in
+    --project-dir=*) PROJECT_ROOT_ARG="${arg#--project-dir=}" ;;
+  esac
+done
+
+PROJECT_ROOT="${PROJECT_ROOT_ARG:-${PROJECT_ROOT:-$(cd "${SCRIPT_DIR}/../../.." && pwd)}}"
 REPORTS_DIR="${PROJECT_ROOT}/_agent_reports"
 
 # 인수 파싱
@@ -32,9 +40,10 @@ for arg in "$@"; do
     --verbose) VERBOSE=true ;;
     --watch)   WATCH=true ;;
     --help|-h)
-      echo "사용법: bash dashboard.sh [--verbose] [--watch]"
-      echo "  --verbose  최근 로그 5줄 출력"
-      echo "  --watch    실시간 갱신 (1초마다 갱신, 태스크 변경 시 전체 재출력)"
+      echo "사용법: bash dashboard.sh [--project-dir=PATH] [--verbose] [--watch]"
+      echo "  --project-dir=PATH  프로젝트 루트 경로 지정"
+      echo "  --verbose           최근 로그 5줄 출력"
+      echo "  --watch             실시간 갱신 (1초마다 갱신, 태스크 변경 시 전체 재출력)"
       exit 0
       ;;
   esac

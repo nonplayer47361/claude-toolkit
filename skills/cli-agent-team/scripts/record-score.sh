@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # record-score.sh — 에이전트 태스크 성능 점수 기록 스크립트
 # Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail> [project-dir]
-# Env  : FAIL_REASON=<code>  — 실패 원인 코드 (verify.sh가 설정)
+# Env  : PROJECT_ROOT=<path> — 프로젝트 루트 경로 (최우선). 미설정 시 5번째 인자 사용,
+#        그마저 없으면 스크립트 위치 기준 ../../.. 을 fallback으로 사용.
+#        FAIL_REASON=<code>  — 실패 원인 코드 (verify.sh가 설정)
 #        유효 코드: SCOPE_VIOLATION | AC_INCOMPLETE | SEC_PATTERN | FILE_MISSING | VERIFY_CMD_FAIL
 #
 # 유효한 agent 값: agy, codex
@@ -14,8 +16,9 @@ set -euo pipefail
 
 # ─── 상수 ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCORES_FILE="$PROJECT_ROOT/_agent_reports/.agent_scores.json"
+# PROJECT_ROOT 우선순위: env var > 5번째 인자(project-dir) > ../../.. fallback
+# (fallback은 아래 인수 파싱 후 결정되므로 여기서는 sentinel 설정)
+_SCRIPT_FALLBACK_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 VALID_AGENTS=("agy" "codex")
 VALID_TASK_TYPES=(
@@ -47,9 +50,15 @@ AGENT="$1"
 TASK_TYPE="$2"
 AC_PASS="$3"
 AC_FAIL="$4"
-if [[ -n "${5:-}" ]]; then
-  SCORES_FILE="${5}/_agent_reports/.agent_scores.json"
+# PROJECT_ROOT 결정: env var → 5번째 인자 → ../../.. fallback
+if [[ -n "${PROJECT_ROOT:-}" ]]; then
+  : # env var 그대로 사용
+elif [[ -n "${5:-}" ]]; then
+  PROJECT_ROOT="${5}"
+else
+  PROJECT_ROOT="$_SCRIPT_FALLBACK_ROOT"
 fi
+SCORES_FILE="$PROJECT_ROOT/_agent_reports/.agent_scores.json"
 
 # ─── 인수 유효성 검사 ────────────────────────────────────────────────────────
 is_valid_agent=false
