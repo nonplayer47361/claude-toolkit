@@ -227,4 +227,5 @@ else
   WIN_RATE="0.0"
 fi
 
-echo "[scores] ${AGENT} / ${TASK_TYPE}: pass=${NEW_PASS} fail=${NEW_FAIL} total=${NEW_TOTAL} (승률 ${WIN_RATE}%)"
+TOTAL_FAILS="$(echo "$UPDATED_JSON" | jq --arg agent "$AGENT" '[.agents[$agent].fail_reasons // {} | to_entries[].value] | add // 0')"
+echo "[scores] ${AGENT} / ${TASK_TYPE}: pass=${NEW_PASS} fail=${NEW_FAIL} total=${NEW_TOTAL} (승률 ${WIN_RATE}%) | 누적 실패유형 합계: ${TOTAL_FAILS}"

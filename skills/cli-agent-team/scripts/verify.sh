@@ -312,6 +312,7 @@ fi
 
 echo ""
 echo "$SEP"
+echo "[$TASK_ID] 총 실패 항목 수: ${FAILED}"
 if [ "$FAILED" -eq 0 ]; then
     echo "[$TASK_ID] ✅ 전체 검증 통과 — 단계 7(커밋)으로 진행"
 
