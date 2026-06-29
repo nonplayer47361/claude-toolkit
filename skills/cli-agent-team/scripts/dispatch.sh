@@ -121,9 +121,18 @@ AGY_ENABLED=true
 CODEX_BIN="${CODEX_BIN:-}"
 AGY_BIN="${AGY_BIN:-}"
 
+_parse_conf() {
+  local key="$1" file="$2"
+  grep -E "^${key}=" "$file" 2>/dev/null | head -1 | sed "s/^${key}=//;s/^['\"]//;s/['\"]$//"
+}
+
 if [ -f "$CONF_FILE" ]; then
-  # shellcheck source=/dev/null
-  . "$CONF_FILE"
+  _codex_bin=$(_parse_conf "CODEX_BIN" "$CONF_FILE")
+  _agy_bin=$(_parse_conf "AGY_BIN" "$CONF_FILE")
+  _pty_bridge=$(_parse_conf "PTY_BRIDGE_PATH" "$CONF_FILE")
+  [ -n "$_codex_bin" ] && CODEX_BIN="$_codex_bin"
+  [ -n "$_agy_bin"   ] && AGY_BIN="$_agy_bin"
+  [ -n "$_pty_bridge" ] && PTY_BRIDGE_PATH="$_pty_bridge"
 fi
 
 if [ -z "${CODEX_BIN:-}" ] && command -v codex >/dev/null 2>&1; then
