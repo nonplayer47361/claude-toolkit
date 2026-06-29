@@ -114,24 +114,27 @@ done
 
 # ── 소스 변경 파일 반영 ────────────────────────────────────────────────
 echo "[worktree] 소스 변경 파일 적용 → $PROJECT_DIR" >&2
-CHANGED_IN_WORKTREE=$(
-  git -C "$WORKTREE_DIR" diff --name-only HEAD 2>/dev/null || true
-  git -C "$WORKTREE_DIR" diff --cached --name-only 2>/dev/null || true
-  git -C "$WORKTREE_DIR" ls-files --others --exclude-standard 2>/dev/null || true
-)
-
-while IFS= read -r relpath; do
-  [ -z "$relpath" ] && continue
-  [[ "$relpath" == _agent_reports/* ]] && continue
-  [[ "$relpath" == _worktrees/* ]] && continue
-  src="$WORKTREE_DIR/$relpath"
-  dst="$PROJECT_DIR/$relpath"
-  if [ -f "$src" ]; then
-    mkdir -p "$(dirname "$dst")"
-    cp "$src" "$dst"
-    echo "  소스 적용: $relpath" >&2
-  fi
-done <<< "$CHANGED_IN_WORKTREE"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a --delete \
+    --exclude='/.git' \
+    --exclude='/_agent_reports/' \
+    --exclude='/_worktrees/' \
+    --exclude='/.env' \
+    --exclude='/.env.*' \
+    "$WORKTREE_DIR/" "$PROJECT_DIR/"
+else
+  echo "[worktree] 경고: rsync 없음 — 삭제된 파일은 메인 트리에 반영되지 않음" >&2
+  (
+    shopt -s dotglob nullglob
+    for src in "$WORKTREE_DIR"/*; do
+      name="$(basename "$src")"
+      case "$name" in
+        .git|_agent_reports|_worktrees|.env|.env.*) continue ;;
+      esac
+      cp -r "$src" "$PROJECT_DIR/"
+    done
+  )
+fi
 
 # ── worktree 정리 ──────────────────────────────────────────────────────
 echo "[worktree] 정리: $WORKTREE_DIR" >&2
