@@ -25,6 +25,12 @@ PROJECT_DIR="${4:-$(pwd)}"
 MODE="${5:-execute}"
 MODEL_TIER="${6:-quality}"
 
+# TASK_ID 형식 검증 (영숫자·하이픈·언더스코어만 허용)
+if ! echo "$TASK_ID" | grep -qE '^[A-Za-z0-9_-]+$'; then
+  echo "ERROR: TASK_ID 형식 오류 — 영숫자·하이픈·언더스코어만 허용: '$TASK_ID'" >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TASK_DIR="$PROJECT_DIR/_agent_reports/$TASK_ID"
 WORKTREE_ROOT="$PROJECT_DIR/_worktrees"
