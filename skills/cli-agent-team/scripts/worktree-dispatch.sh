@@ -66,10 +66,10 @@ if ! git -C "$PROJECT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
   exit 1
 fi
 
-# uncommitted changes 확인 — worktree 생성 전 main이 clean해야 함
-if ! git -C "$PROJECT_DIR" diff --quiet HEAD 2>/dev/null; then
-  echo "[worktree] ⚠ uncommitted changes 감지 — 일반 dispatch.sh로 폴백" >&2
-  exec bash "$SCRIPT_DIR/dispatch.sh" "$CLI" "$TASK_ID" "$AUTH_MODE" "$PROJECT_DIR" "$MODE" "$MODEL_TIER"
+# dirty worktree 확인 — worktree는 stash 없이 항상 HEAD 기준 clean state로 생성됨
+if [ -n "$(git -C "$PROJECT_DIR" status --porcelain --untracked-files=normal)" ]; then
+  echo "[worktree] ⚠ dirty worktree 감지 — worktree는 HEAD 기준 clean state로 생성됩니다" >&2
+  echo "[worktree] ⚠ uncommitted/untracked 변경은 worktree에 반영되지 않습니다" >&2
 fi
 
 # ── 기존 worktree 정리 ─────────────────────────────────────────────────
