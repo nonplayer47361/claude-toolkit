@@ -13,7 +13,7 @@ usage() {
 Usage: agent-team <command> [args...]
 
 Commands:
-  init                       프로젝트 초기화 (setup.sh)
+  init                       프로젝트 초기화 (init.sh)
   doctor                     환경 진단 (doctor.sh)
   dispatch <cli> <task-id> <auth> [dir] [mode] [tier]
                              에이전트 배정 (dispatch.sh)
@@ -39,7 +39,7 @@ CMD="${1:-}"
 shift || true
 
 case "$CMD" in
-  init)            bash "$SCRIPT_DIR/setup.sh" "$@" ;;
+  init)            bash "$SCRIPT_DIR/init.sh" "$@" ;;
   doctor)          bash "$SCRIPT_DIR/doctor.sh" "$@" ;;
   dispatch)        bash "$SCRIPT_DIR/dispatch.sh" "$@" ;;
   worktree)        bash "$SCRIPT_DIR/worktree-dispatch.sh" "$@" ;;
