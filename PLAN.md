@@ -212,6 +212,27 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 ---
 
+## M13 — ECC 패턴 적용 + 에이전트 효율 추적 (계획 확정 — 미착수)
+
+> 상세 계획: [[docs/M13-plan.md]]  
+> 참고: https://github.com/affaan-m/ECC
+
+### 진행 대기
+
+| ID | 설명 | 에이전트 | 크기 | 의존 |
+|----|------|---------|-----|------|
+| T-M13-A | AGENTS.md 통합 — Codex/agy 자동 역할 인식 (init.sh + dispatch.sh) | codex | 소형 | — |
+| T-M13-B | 세션 연속성 훅 — session-start + pre-compact (ECC 패턴) | agy | 중형 | — |
+| T-M13-C | SHARED_TASK_NOTES 브리지 — 이터레이션 간 컨텍스트 보존 | codex | 소형 | T-M13-A 후 |
+| T-M13-D | AgentShield 5카테고리 보안 스캐너 (secrets·hook·MCP·config·perms) | agy | 중형 | — |
+| T-M13-E | 에이전트 효율 추적 — 토큰/시간/LOC 수집 + daily-review.sh | codex | 중형 | — |
+
+**병렬 1라운드**: T-M13-A(codex) + T-M13-B(agy)  
+**병렬 2라운드**: T-M13-C(codex) + T-M13-D(agy)  
+**단독 3라운드**: T-M13-E(codex)
+
+---
+
 ## 남은 작업
 
 ### 인프라 설치 완료 현황
