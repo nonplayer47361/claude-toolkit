@@ -2,7 +2,7 @@
 
 관련: [[AGENTS.md]] | [[skills/cli-agent-team/SKILL.md]]
 
-마지막 업데이트: 2026-06-29
+마지막 업데이트: 2026-06-30
 
 ---
 
@@ -212,24 +212,27 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 ---
 
-## M13 — ECC 패턴 적용 + 에이전트 효율 추적 (계획 확정 — 미착수)
+## M13 — ECC 패턴 적용 + 에이전트 효율 추적 (재편 확정 — 미착수)
 
-> 상세 계획: [[docs/M13-plan.md]]  
+> 상세 계획: [[docs/M13-plan.md]] (2026-06-30 codex·agy 피드백 반영 재편)  
 > 참고: https://github.com/affaan-m/ECC
 
 ### 진행 대기
 
 | ID | 설명 | 에이전트 | 크기 | 의존 |
 |----|------|---------|-----|------|
-| T-M13-A | AGENTS.md 통합 — Codex/agy 자동 역할 인식 (init.sh + dispatch.sh) | codex | 소형 | — |
-| T-M13-B | 세션 연속성 훅 — session-start + pre-compact (ECC 패턴) | agy | 중형 | — |
-| T-M13-C | SHARED_TASK_NOTES 브리지 — 이터레이션 간 컨텍스트 보존 | codex | 소형 | T-M13-A 후 |
-| T-M13-D | AgentShield 5카테고리 보안 스캐너 (secrets·hook·MCP·config·perms) | agy | 중형 | — |
-| T-M13-E | 에이전트 효율 추적 — 토큰/시간/LOC 수집 + daily-review.sh | codex | 중형 | — |
+| T-M13-P1 | verify.sh 실행 보안: 메타문자 차단 + bash -c 제거 + 스코프 실패 시 검사3 skip | codex | 소형 | — |
+| T-M13-P2 | cross-review.sh API 수정 + full 권한 하드코딩 제거 | agy | 소형 | — |
+| T-M13-A | AGENTS.md 통합 — init.sh + dispatch.sh (heredoc quoting 수정 포함) | codex | 소형 | P1 후 |
+| T-M13-B | 세션 연속성 훅 — session-start + pre-compact (settings.json 스키마 수정 포함) | agy | 중형 | P2 후 |
+| T-M13-D | AgentShield 7카테고리 보안 스캐너 (⑥검증명령 메타문자, ⑦untracked 추가) | agy | 중형 | A·B 후 |
+| T-M13-C | SHARED_TASK_NOTES 브리지 — MSG 결합 수정 + flock 락 추가 | codex | 소형 | D 후 |
+| T-M13-E | 에이전트 효율 추적 — codex 토큰 실추출, agy null fallback | codex | 중형 | C 후 |
 
-**병렬 1라운드**: T-M13-A(codex) + T-M13-B(agy)  
-**병렬 2라운드**: T-M13-C(codex) + T-M13-D(agy)  
-**단독 3라운드**: T-M13-E(codex)
+**라운드 0 (병렬)**: T-M13-P1(codex) + T-M13-P2(agy) — 버그 패치  
+**라운드 1 (병렬)**: T-M13-A(codex) + T-M13-B(agy) — ECC 기반  
+**라운드 2 (순차)**: T-M13-D(agy) → T-M13-C(codex) — 보안·컨텍스트  
+**라운드 3 (단독)**: T-M13-E(codex) — 효율 추적
 
 ---
 
