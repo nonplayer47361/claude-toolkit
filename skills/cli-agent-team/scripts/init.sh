@@ -242,6 +242,16 @@ REPORTS_DIR="$PROJECT_DIR/_agent_reports"
 mkdir -p "$REPORTS_DIR"
 echo "[init] _agent_reports/ 디렉토리 확인: $REPORTS_DIR"
 
+# ── SHARED_TASK_NOTES.md 생성 — 이터레이션 간 컨텍스트 브리지 ───────────────────
+NOTES_FILE="$REPORTS_DIR/SHARED_TASK_NOTES.md"
+if [ ! -f "$NOTES_FILE" ]; then
+  cat > "$NOTES_FILE" << 'NOTES_EOF'
+# SHARED_TASK_NOTES.md — 이터레이션 간 컨텍스트 브리지
+# 각 에이전트가 태스크 시작 시 읽고 완료 후 핵심 결정을 추가합니다.
+NOTES_EOF
+  echo "[init] SHARED_TASK_NOTES.md 생성: $NOTES_FILE"
+fi
+
 # ── .gitignore에 _agent_reports/ 항목 추가 ────────────────────────────────────
 GITIGNORE_FILE="$PROJECT_DIR/.gitignore"
 if [ -f "$GITIGNORE_FILE" ]; then

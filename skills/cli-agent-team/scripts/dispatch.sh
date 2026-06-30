@@ -287,6 +287,14 @@ elif [ "$MODE" = "execute" ]; then
 "
   fi
 
+  _notes_hint=""
+  _NOTES_FILE="$PROJECT_DIR/_agent_reports/SHARED_TASK_NOTES.md"
+  if [ -f "$_NOTES_FILE" ] && [ -s "$_NOTES_FILE" ]; then
+    _notes_hint="
+【컨텍스트 브리지】 _agent_reports/SHARED_TASK_NOTES.md를 읽어 이전 태스크의 핵심 결정사항을 파악해줘. 이 태스크 완료 후 핵심 결정(변경 파일·이유·다음 주의사항)을 NOTES 하단에 추가해줘.
+"
+  fi
+
   _rtk_hint=""
   if command -v rtk >/dev/null 2>&1; then
     _rtk_hint="
@@ -294,7 +302,7 @@ elif [ "$MODE" = "execute" ]; then
 【토큰 절약】 파일 검색은 rtk grep, 코드 탐색은 codebase-memory-mcp search_code를 우선 사용해줘."
   fi
 
-  MSG="${_agents_hint}_agent_reports/${TASK_ID}/TASK.md 읽고 시작해줘. 먼저 _agent_reports/${TASK_ID}/TODO.md에 하위작업 체크리스트를 작성하고, 다 끝나면 _agent_reports/${TASK_ID}/REPORT.md에 완료 보고서를 작성해줘. 소스 코드 파일은 TASK.md의 '## 허용 파일' 목록에 있는 것만 생성하거나 수정해줘.
+  MSG="${_agents_hint}${_notes_hint}_agent_reports/${TASK_ID}/TASK.md 읽고 시작해줘. 먼저 _agent_reports/${TASK_ID}/TODO.md에 하위작업 체크리스트를 작성하고, 다 끝나면 _agent_reports/${TASK_ID}/REPORT.md에 완료 보고서를 작성해줘. 소스 코드 파일은 TASK.md의 '## 허용 파일' 목록에 있는 것만 생성하거나 수정해줘.
 
 REPORT.md는 반드시 다음 섹션을 포함해야 해:
 ## AC 체크리스트

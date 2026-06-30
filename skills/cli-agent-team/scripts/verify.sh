@@ -319,6 +319,24 @@ if [ "$FAILED" -eq 0 ]; then
                 || echo "  [자동] record-score skip (task_type 불인식 또는 오류)"
         fi
     fi
+
+    # SHARED_TASK_NOTES.md append (검증 통과 시에만, flock 락)
+    _NOTES_FILE="$PROJECT_DIR/_agent_reports/SHARED_TASK_NOTES.md"
+    if [ -f "$_NOTES_FILE" ]; then
+        _CHANGED=$(cd "$PROJECT_DIR" && \
+            git diff --name-only HEAD 2>/dev/null | tr '\n' ',' | sed 's/,$//' || true)
+        _AGENT_N=""
+        _TASK_DIR_N="$PROJECT_DIR/_agent_reports/$TASK_ID"
+        [ -f "${_TASK_DIR_N}/_codex_fallback.log" ] && _AGENT_N="codex"
+        [ -f "${_TASK_DIR_N}/_agy_stdout.log" ] && [ -z "$_AGENT_N" ] && _AGENT_N="agy"
+        (
+            flock -w 10 200 2>/dev/null || true
+            printf '\n## [%s] %s (%s) 완료\n- 변경: %s\n' \
+                "$(date '+%Y-%m-%d %H:%M')" "$TASK_ID" "${_AGENT_N:-unknown}" \
+                "${_CHANGED:-없음}" >> "$_NOTES_FILE"
+        ) 200>"${_NOTES_FILE}.lock"
+    fi
+
     exit 0
 else
     echo "[$TASK_ID] ❌ 검증 실패 — 위 항목을 FEEDBACK.md에 포함해 단계 8(재배정)으로"
