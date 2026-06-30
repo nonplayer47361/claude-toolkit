@@ -181,7 +181,7 @@ else
                 \(없음*|\(none*) echo "  ⏭️  $label: 정의 없음 — 건너뜀"; continue ;;
             esac
 
-            if echo "$cmd" | grep -qE '[;&|`$(){}]|&&|\|\|'; then
+            if echo "$cmd" | grep -qE '[;&|`$(){}]|&&|\|\||[<>\\]'; then
                 echo "  ❌ 명령 거부: 셸 메타문자 포함 — '$cmd'" >&2
                 FAILED=1
                 continue
