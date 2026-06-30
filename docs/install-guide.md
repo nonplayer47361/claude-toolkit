@@ -126,6 +126,49 @@ The setup script writes `_agent_reports/.cli-agent-team.conf`. The important fie
 - `AGY_ENABLED=true`: `agy` was found and is enabled.
 - `CLAUDE_ENABLED=true`: Claude remains available as orchestrator and fallback.
 
+## 3.5 (선택) ECC 세션 연속성 훅 등록
+
+ECC(Extended Context Continuity) 패턴은 세션이 새로 시작될 때와 컨텍스트 압축 직전에
+`.session_state`를 자동으로 Claude에 주입한다. 이를 활성화하려면 `~/.claude/settings.json`에
+훅을 등록해야 한다.
+
+**등록 방법 (수동)**
+
+`~/.claude/settings.json`을 열어 아래를 추가한다:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/skills/cli-agent-team/scripts/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/skills/cli-agent-team/scripts/hooks/pre-compact.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+기존 `settings.json`에 다른 설정이 있으면 `"hooks"` 블록만 병합한다.
+등록 후 Claude Code를 재시작하면 다음 세션부터 `.session_state`가 자동으로 주입된다.
+
+> ECC 훅 없이도 cli-agent-team은 정상 동작한다. 훅은 세션 재개 시 이전 상태를
+> 자동으로 불러오는 편의 기능이며, 등록하지 않으면 새 세션마다 수동으로 "계속"을 입력해야 한다.
+
 ## 4. Run the First Test Task
 
 Create a task directory:

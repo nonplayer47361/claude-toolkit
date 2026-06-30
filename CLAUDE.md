@@ -26,6 +26,8 @@ claude-toolkit/
 
 | 스킬 | 설명 | 설치 |
 |------|------|------|
+| `git-helper` | git diff 기반 커밋 메시지 자동 생성·PR 초안 작성 | `.\scripts\install-skill.ps1 -SkillName git-helper` |
+| `code-review-ko` | 한국어 코드 리뷰 — diff 분석 후 지적사항 목록 생성 | `.\scripts\install-skill.ps1 -SkillName code-review-ko` |
 | `cli-agent-team` | Claude를 오케스트레이터로, Codex·agy를 서브 에이전트로 하는 다중 에이전트 루프. 아이디어 회의부터 배포까지 커버 | `.\scripts\install-skill.ps1 -SkillName cli-agent-team` |
 
 ## 주요 명령어

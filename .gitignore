@@ -1,7 +1,11 @@
 node_modules/
 *.bak
+*.docx
 .env
 .env.local
 mcp-servers/**/node_modules/
 _agent_reports/
 _worktrees/
+--Update/
+.serena/
+daily/
