@@ -124,6 +124,12 @@ else
   print_result WARN "AGENT_ROLES.md not found"
 fi
 
+if [ -f "$SCRIPT_DIR/agent-shield.sh" ]; then
+  print_result OK "agent-shield.sh 존재 — AgentShield 보안 스캔 활성"
+else
+  print_result WARN "agent-shield.sh 없음 — verify.sh가 fallback grep 모드로 동작"
+fi
+
 TEST_COMMAND="$(detect_test_command || true)"
 if [ -n "$TEST_COMMAND" ]; then
   print_result OK "Test command detected: $TEST_COMMAND"

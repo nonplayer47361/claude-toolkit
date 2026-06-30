@@ -260,43 +260,36 @@ else
     fi
 fi
 
-# ── 5. 보안 패턴 스캔 ────────────────────────────────────────────────
+# ── 5. AgentShield 보안 스캔 ─────────────────────────────────────────
 
 echo ""
-echo "[검사 5/5] 보안 패턴 스캔"
+echo "[검사 5/5] AgentShield 보안 스캔"
 
-SEC_DIFF=$(cd "$PROJECT_DIR" && git diff HEAD 2>/dev/null || true)
+_SHIELD_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SHIELD_EXIT=0
 
-if [ -z "$SEC_DIFF" ]; then
-    echo "  ⏭️  변경된 내용 없음 — 건너뜀"
+if [ -f "$_SHIELD_SCRIPT_DIR/agent-shield.sh" ]; then
+  bash "$_SHIELD_SCRIPT_DIR/agent-shield.sh" "$PROJECT_DIR" || SHIELD_EXIT=$?
 else
-    SEC_FAIL=0
+  # fallback: 기존 grep 방식 (agent-shield.sh 미설치 환경 호환)
+  SEC_DIFF=$(cd "$PROJECT_DIR" && git diff HEAD 2>/dev/null || true)
+  SEC_HIT=$(printf '%s\n' "$SEC_DIFF" | grep '^+[^+]' | \
+    grep -v '^+[[:space:]]*#' | grep -v '^+[[:space:]]*[-*]' | \
+    grep -E '(chmod[[:space:]]+777|eval[[:space:]]+\$\(|rm[[:space:]]+-rf[[:space:]]+/)' 2>/dev/null || true)
+  if [ -n "$SEC_HIT" ]; then
+    echo "  ❌ 위험 패턴 탐지 (fallback grep)"
+    printf '%s\n' "$SEC_HIT" | head -5
+    SHIELD_EXIT=2
+  else
+    echo "  ✅ 보안 패턴 이상 없음 (fallback grep)"
+  fi
+fi
 
-    # 1. 시크릿 패턴 감지 (추가된 줄만: ^+[^+])
-    SECRET_HIT=$(echo "$SEC_DIFF" | grep '^+[^+]' | \
-        grep -iE '(api[_-]?key|secret|password|passwd|token|bearer)\s*[=:]\s*["'"'"'][^"'"'"']{8,}' \
-        2>/dev/null || true)
-    if [ -n "$SECRET_HIT" ]; then
-        echo "  ❌ 시크릿 패턴 감지 — 민감 정보 포함 가능성"
-        echo "$SECRET_HIT" | head -3 | sed 's/^/      /'
-        SEC_FAIL=1
-        FAILED=1
-    fi
-
-    # 2. 위험 명령어 패턴 감지 (추가된 줄만)
-    DANGER_HIT=$(echo "$SEC_DIFF" | grep '^+[^+]' | \
-        grep -E '(rm\s+-rf\s|git\s+reset\s+--hard|DROP\s+TABLE|chmod\s+777|eval\s+\$)' \
-        2>/dev/null || true)
-    if [ -n "$DANGER_HIT" ]; then
-        echo "  ❌ 위험 명령어 패턴 감지 — 검토 필요"
-        echo "$DANGER_HIT" | head -3 | sed 's/^/      /'
-        SEC_FAIL=1
-        FAILED=1
-    fi
-
-    if [ "$SEC_FAIL" -eq 0 ]; then
-        echo "  ✅ 보안 패턴 이상 없음"
-    fi
+if [ "$SHIELD_EXIT" -eq 2 ]; then
+  SEC_FAIL=1
+  FAILED=1
+elif [ "$SHIELD_EXIT" -eq 1 ]; then
+  echo "  ⚠ Warning — 커밋 허용, 검토 권장"
 fi
 
 # ── 결과 요약 ────────────────────────────────────────────────────────
