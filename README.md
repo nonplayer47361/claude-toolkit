@@ -112,7 +112,7 @@ Claude Code를 재시작하면 `/git-commit`, `/git-pr`, `/git-branch`, `/code-r
 
 ```bash
 # 1. 에이전트에게 태스크 배정
-$ bash ~/.claude/skills/cli-agent-team/scripts/dispatch.sh codex T001 limited . execute
+$ bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 limited "$(pwd)" execute
 
 [dispatch] T001 → codex  (execute · limited · quality)
 [dispatch] TASK.md 확인: ✅
@@ -123,7 +123,7 @@ $ bash ~/.claude/skills/cli-agent-team/scripts/dispatch.sh codex T001 limited . 
 
 ```bash
 # 2. 결과 자동 검증
-$ bash ~/.claude/skills/cli-agent-team/scripts/verify.sh T001 . codex
+$ bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh verify T001 "$(pwd)"
 
 [verify] T001 — codex
 [verify] 1/5 스코프 검사............. ✅  허용 파일만 변경됨
@@ -203,11 +203,11 @@ bash ~/.claude/skills/cli-agent-team/scripts/record-score.sh codex shell_scripti
 
 ```bash
 # 충돌 여부 사전 검사
-bash ~/.claude/skills/cli-agent-team/scripts/parallel-check.sh T001 T002 .
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh parallel-check T001 T002 "$(pwd)"
 
 # 통과 시 동시 배정
-bash ~/.claude/skills/cli-agent-team/scripts/dispatch.sh codex T001 limited . execute
-bash ~/.claude/skills/cli-agent-team/scripts/dispatch.sh agy   T002 limited . execute
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 limited "$(pwd)" execute
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch agy   T002 limited "$(pwd)" execute
 ```
 
 `parallel-check.sh`가 선행 태스크 완료 여부와 `## 허용 파일` 목록 충돌을 자동으로 검사합니다. 같은 에이전트 병렬 실행은 금지(codex 1 + agy 1이 최대).
@@ -250,7 +250,7 @@ bash ~/.claude/skills/cli-agent-team/scripts/daily-review.sh
 
 ```bash
 # 격리된 git worktree에서 에이전트 실행
-bash ~/.claude/skills/cli-agent-team/scripts/worktree-dispatch.sh codex T001 limited .
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh worktree codex T001 limited "$(pwd)"
 ```
 
 - 실패 시 worktree 변경이 메인으로 전파되지 않음
@@ -296,7 +296,7 @@ bash ~/.claude/skills/cli-agent-team/scripts/dashboard.sh --watch
 5. **자동 검증 명령** — AGENT_ROLES.md에 등록된 lint/test 통과
 
 ```bash
-bash ~/.claude/skills/cli-agent-team/scripts/verify.sh T001 . codex
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh verify T001 "$(pwd)"
 ```
 
 ---
@@ -317,10 +317,10 @@ cd your-project
 bash ~/.claude/skills/cli-agent-team/scripts/setup.sh
 
 # 2. Claude가 TASK.md 작성 후 배정
-bash ~/.claude/skills/cli-agent-team/scripts/dispatch.sh codex T001 limited . execute quality
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 limited "$(pwd)" execute quality
 
 # 3. 자동 검증
-bash ~/.claude/skills/cli-agent-team/scripts/verify.sh T001 . codex
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh verify T001 "$(pwd)"
 
 # 4. 커밋 (verify.sh 통과 후)
 git add . && git commit -m "feat: T001 완료"
@@ -445,7 +445,7 @@ bash ~/.claude/skills/cli-agent-team/scripts/setup.sh --status
 
 ```bash
 # 환경 진단 한 번에
-bash ~/.claude/skills/cli-agent-team/scripts/doctor.sh
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh doctor
 ```
 
 ---
