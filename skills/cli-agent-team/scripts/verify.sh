@@ -64,7 +64,7 @@ extract_section() {
 echo ""
 echo "[검사 1/4] 스코프 초과"
 
-ALLOWED_SECTION=$(extract_section "허용 파일" "$TASK_FILE" | grep '^- ' | sed 's/^- //' || true)
+ALLOWED_SECTION=$(extract_section "허용 파일" "$TASK_FILE" | grep '^- ' | sed 's/^- //' | sed 's/[[:space:]]([^)]*)$//' || true)
 
 if [ -z "$ALLOWED_SECTION" ]; then
     echo "  ⏭️  TASK.md에 '## 허용 파일' 없음 — 건너뜀"

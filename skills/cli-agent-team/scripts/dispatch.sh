@@ -113,6 +113,7 @@ TASK_FILE="${TASK_DIR}/TASK.md"
 
 # 실제 작업 디렉토리로 이동 (상대 경로가 올바르게 동작하도록)
 cd "$DIR"
+PROJECT_DIR="$(pwd)"
 
 REPORTS_DIR="_agent_reports"
 CONF_FILE="${REPORTS_DIR}/.cli-agent-team.conf"
@@ -123,7 +124,7 @@ AGY_BIN="${AGY_BIN:-}"
 
 _parse_conf() {
   local key="$1" file="$2"
-  grep -E "^${key}=" "$file" 2>/dev/null | head -1 | sed "s/^${key}=//;s/^['\"]//;s/['\"]$//"
+  grep -E "^${key}=" "$file" 2>/dev/null | head -1 | sed "s/^${key}=//;s/^['\"]//;s/['\"]$//" || true
 }
 
 CODEX_MODEL_FAST_DEFAULT="gpt-5.4-mini"
@@ -279,6 +280,13 @@ mkdir -p "$TASK_DIR"
 if [ "$MODE" = "review" ]; then
   MSG="BRIEF.md와 _agent_reports/${TASK_ID}/TASK.md를 읽고, 실행 전 검토 의견을 _agent_reports/${TASK_ID}/REVIEW.md에 작성해줘. 코드·파일은 건드리지 마세요. REVIEW.md 형식은 task-templates.md의 REVIEW.md 섹션을 참고해."
 elif [ "$MODE" = "execute" ]; then
+  _agents_hint=""
+  if [ -f "$PROJECT_DIR/AGENTS.md" ]; then
+    _agents_hint="시작 전 AGENTS.md를 읽어 역할과 검증 규칙을 확인해줘.
+
+"
+  fi
+
   _rtk_hint=""
   if command -v rtk >/dev/null 2>&1; then
     _rtk_hint="
@@ -286,7 +294,7 @@ elif [ "$MODE" = "execute" ]; then
 【토큰 절약】 파일 검색은 rtk grep, 코드 탐색은 codebase-memory-mcp search_code를 우선 사용해줘."
   fi
 
-  MSG="_agent_reports/${TASK_ID}/TASK.md 읽고 시작해줘. 먼저 _agent_reports/${TASK_ID}/TODO.md에 하위작업 체크리스트를 작성하고, 다 끝나면 _agent_reports/${TASK_ID}/REPORT.md에 완료 보고서를 작성해줘. 소스 코드 파일은 TASK.md의 '## 허용 파일' 목록에 있는 것만 생성하거나 수정해줘.
+  MSG="${_agents_hint}_agent_reports/${TASK_ID}/TASK.md 읽고 시작해줘. 먼저 _agent_reports/${TASK_ID}/TODO.md에 하위작업 체크리스트를 작성하고, 다 끝나면 _agent_reports/${TASK_ID}/REPORT.md에 완료 보고서를 작성해줘. 소스 코드 파일은 TASK.md의 '## 허용 파일' 목록에 있는 것만 생성하거나 수정해줘.
 
 REPORT.md는 반드시 다음 섹션을 포함해야 해:
 ## AC 체크리스트
