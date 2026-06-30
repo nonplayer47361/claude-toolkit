@@ -21,6 +21,22 @@ Reusable Claude Code skills, agent-loop helpers, and MCP server templates.
 
 Claude Code를 바로 쓸 수 있는 설치형 스킬 모음입니다. Windows PowerShell 을 우선 지원하고, macOS/Linux는 동일 파일을 그냥 `~/.claude/skills`에 복사해 쓸 수 있습니다.
 
+## 원라이너 설치 (git clone 불필요)
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/scripts/install.ps1 | iex
+```
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/scripts/install.sh | bash
+```
+
+Claude Code를 재시작하면 `/git-commit`, `/git-pr`, `/git-branch`, `/code-review-ko` 명령어를 바로 사용할 수 있습니다.
+
+---
+
 ## Included Skills
 
 | Skill | Description | Requirements | Run setup? |
@@ -29,40 +45,30 @@ Claude Code를 바로 쓸 수 있는 설치형 스킬 모음입니다. Windows P
 | `git-helper` | Drafts commit messages, PR descriptions, and branch names from repository context. | Claude Code | No |
 | `code-review-ko` | Reviews code diffs in Korean with bug, security, performance, and maintainability focus. | Claude Code | No |
 
-## Quick Start: 5 Minutes
+## Quick Start: 1 Minute
 
-### 1. Clone
+### 원라이너 설치 (권장)
+
+**Windows:**
+```powershell
+irm https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/scripts/install.ps1 | iex
+```
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/scripts/install.sh | bash
+```
+
+### 직접 설치 (git clone)
 
 ```powershell
 git clone https://github.com/nonplayer47361/claude-toolkit.git
 cd claude-toolkit
+.\scripts\setup.ps1          # Windows
+bash scripts/setup.sh        # macOS/Linux
 ```
 
-macOS/Linux:
-
-```bash
-git clone https://github.com/nonplayer47361/claude-toolkit.git
-cd claude-toolkit
-```
-
-### 2. Install Basic Skills
-
-Windows PowerShell:
-
-```powershell
-.\scripts\install-skill.ps1 -SkillName git-helper
-.\scripts\install-skill.ps1 -SkillName code-review-ko
-```
-
-macOS/Linux:
-
-```bash
-mkdir -p ~/.claude/skills
-cp -R skills/git-helper ~/.claude/skills/
-cp -R skills/code-review-ko ~/.claude/skills/
-```
-
-### 3. Use in Claude Code
+### Use in Claude Code
 
 ```text
 /git-commit       # Draft a commit message
@@ -145,22 +151,27 @@ bash ~/.claude/skills/cli-agent-team/scripts/dashboard.sh --watch
 | `git-helper` | 커밋 메시지·PR 설명·브랜치 이름 자동 생성 | Claude Code | No |
 | `code-review-ko` | 한국어 코드 리뷰 (버그·보안·성능·가독성) | Claude Code | No |
 
-### 빠른 시작 (5분)
+### 빠른 시작 (1분)
 
-**1. 클론 및 설치**
+**원라이너 설치 (권장 — git clone 불필요)**
 
 Windows:
 ```powershell
-git clone https://github.com/nonplayer47361/claude-toolkit.git
-cd claude-toolkit
-.\scripts\setup.ps1
+irm https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/scripts/install.ps1 | iex
 ```
 
 macOS/Linux:
 ```bash
+curl -fsSL https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/scripts/install.sh | bash
+```
+
+**직접 설치 (git clone)**
+
+```powershell
 git clone https://github.com/nonplayer47361/claude-toolkit.git
 cd claude-toolkit
-bash scripts/setup.sh
+.\scripts\setup.ps1          # Windows
+bash scripts/setup.sh        # macOS/Linux
 ```
 
 **2. Claude Code 재시작**
