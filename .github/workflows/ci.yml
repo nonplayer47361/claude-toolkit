@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Job 1: Bash 문법 체크 (모든 .sh 파일) ─────────────────────────────────
+  lint-bash:
+    name: Bash syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check all .sh files with bash -n
+        run: |
+          failed=0
+          while IFS= read -r -d '' f; do
+            if ! bash -n "$f" 2>&1; then
+              echo "FAIL: $f"
+              failed=1
+            else
+              echo "OK:   $f"
+            fi
+          done < <(find . -name "*.sh" -not -path "./.git/*" -print0)
+          exit $failed
+
+  # ── Job 2: install.sh 실제 실행 (macOS / Linux 매트릭스) ──────────────────
+  install-test:
+    name: install.sh (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install.sh
+        run: bash scripts/install.sh
+
+      - name: Verify skills installed
+        run: |
+          for skill in git-helper code-review-ko cli-agent-team; do
+            if [ ! -d "$HOME/.claude/skills/$skill" ]; then
+              echo "FAIL: $skill not found in ~/.claude/skills/"
+              exit 1
+            fi
+            echo "OK:   $skill installed"
+          done
+
+  # ── Job 3: setup.sh smoke test (에이전트 없는 환경) ───────────────────────
+  setup-test:
+    name: setup.sh smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Run setup.sh in tmp project dir
+        run: |
+          tmpdir=$(mktemp -d)
+          cd "$tmpdir"
+          git init
+          bash "$GITHUB_WORKSPACE/skills/cli-agent-team/scripts/setup.sh" --skip-probe
+          test -f "_agent_reports/.cli-agent-team.conf" || (echo "FAIL: conf not created" && exit 1)
+          echo "OK: .cli-agent-team.conf created"
+          grep "CLAUDE_ENABLED=true" "_agent_reports/.cli-agent-team.conf" || (echo "FAIL: CLAUDE_ENABLED missing" && exit 1)
+          echo "OK: CLAUDE_ENABLED=true found"
+
+  # ── Job 4: install.ps1 PowerShell 문법 체크 ──────────────────────────────
+  lint-ps1:
+    name: PowerShell syntax check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check .ps1 syntax
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Filter "*.ps1" | Where-Object { $_.FullName -notmatch "\.git" } | ForEach-Object {
+            try {
+              $null = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$null)
+              Write-Host "OK:   $($_.FullName)"
+            } catch {
+              Write-Host "FAIL: $($_.FullName) — $_"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }

@@ -26,6 +26,11 @@
 Claude Code를 즉시 쓸 수 있는 설치형 스킬 모음입니다.
 핵심은 `cli-agent-team` — Claude가 오케스트레이터(뇌)가 되고 `codex` · `agy` 같은 외부 CLI 에이전트가 실제 코드를 짜는 **다중 에이전트 개발 루프**입니다.
 
+> **외부 에이전트란?**
+> - **codex** — [OpenAI Codex CLI](https://github.com/openai/codex). GPT-4o 기반 터미널 코딩 에이전트.
+> - **agy** — [Antigravity CLI](https://github.com/antigravity-dev/agy). Google이 개발한 Gemini 기반 코딩 에이전트.
+> - **둘 다 선택 사항.** 없어도 Claude 단독으로 모든 핵심 기능이 동작합니다.
+
 ---
 
 ## 원라이너 설치 (git clone 불필요)
@@ -41,6 +46,21 @@ curl -fsSL https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/
 ```
 
 Claude Code를 재시작하면 `/git-commit`, `/git-pr`, `/git-branch`, `/code-review-ko` 명령어를 바로 사용할 수 있습니다.
+
+---
+
+## 이게 왜 필요한가?
+
+| 상황 | Claude 단독 | 이 툴킷 (cli-agent-team) |
+|------|------------|--------------------------|
+| 단순 질문·단일 작업 | 충분 | 과잉 (쓸 필요 없음) |
+| 장기 프로젝트 | 세션마다 컨텍스트 재설명 | `.session_state` + ECC 훅으로 자동 재개 |
+| 독립 작업 2개 동시 | 순차 실행 | codex + agy 병렬 dispatch |
+| Rate limit 이후 재개 | 처음부터 다시 | 훅이 자동으로 이전 상태 복원 |
+| 에이전트 결과 신뢰성 | 결과 직접 확인 | verify.sh 5항목 자동 검증 |
+| 어떤 에이전트가 더 나은지 | 감에 의존 | AC 승률 누적 → 자동 배정 최적화 |
+
+**권장 사용 시나리오:** 여러 날에 걸친 프로젝트, 독립 작업을 병렬로 처리하고 싶을 때, 에이전트 결과를 자동으로 검증하고 싶을 때.
 
 ---
 
@@ -87,6 +107,59 @@ Claude Code를 재시작하면 `/git-commit`, `/git-pr`, `/git-branch`, `/code-r
 - **Claude** = 뇌. TASK.md 작성 → 에이전트 배정 → REPORT.md 검토 → 커밋 · 재배정
 - **codex / agy** = 손. 실제 코드 작성 · 파일 수정 · REPORT.md 제출
 - **codex와 agy는 선택 사항.** 둘 다 없어도 Claude 단독 운영 가능
+
+### 실제 실행 흐름 예시
+
+```bash
+# 1. 에이전트에게 태스크 배정
+$ bash ~/.claude/skills/cli-agent-team/scripts/dispatch.sh codex T001 limited . execute
+
+[dispatch] T001 → codex  (execute · limited · quality)
+[dispatch] TASK.md 확인: ✅
+[dispatch] 실행 중... (codex headless mode)
+[dispatch] 완료 (47초)
+[dispatch] REPORT.md 수신: ✅
+```
+
+```bash
+# 2. 결과 자동 검증
+$ bash ~/.claude/skills/cli-agent-team/scripts/verify.sh T001 . codex
+
+[verify] T001 — codex
+[verify] 1/5 스코프 검사............. ✅  허용 파일만 변경됨
+[verify] 2/5 AC 체크리스트........... ✅  4/4 항목 통과
+[verify] 3/5 보안 스캔 (AgentShield). ✅  이상 없음
+[verify] 4/5 완료 증거 파일.......... ✅  utils/formatter.js 존재·변경됨
+[verify] 5/5 자동 검증 명령.......... ✅  (없음 — 건너뜀)
+[verify] ✅ 검증 통과 — 커밋 진행 가능
+[scores] codex/code_implementation: pass=4 fail=0 (승률 100.0%)
+```
+
+에이전트가 작성한 REPORT.md 예시:
+
+```markdown
+## AC 체크리스트
+- [x] formatDate 함수가 utils/formatter.js에 추가됨
+- [x] 세 가지 format 모두 동작함
+- [x] 기존 코드 변경 없음
+- [x] REPORT.md의 AC 체크리스트 모두 [x] 처리됨
+```
+
+전체 워크스루: [docs/walkthrough.md](docs/walkthrough.md)
+
+---
+
+## cli-agent-team — 사용 레벨
+
+필요한 만큼만 설치해서 시작할 수 있습니다.
+
+| 레벨 | 필요 도구 | 사용 가능 기능 |
+|------|----------|--------------|
+| **Level 1 — 기본** | Claude Code + Git | 오케스트레이션, TASK/REPORT 구조, verify, 점수 기록 |
+| **Level 2 — 확장** | + codex 또는 agy | 외부 에이전트 dispatch, 병렬 배정, 적응형 스코어링 |
+| **Level 3 — 전체** | + Node.js + jq | 데몬 모드, 실시간 대시보드, 일일 효율 리뷰, ECC 훅 |
+
+**Level 1으로 시작하고 필요할 때 올리면 됩니다.** codex/agy 없이도 Claude가 직접 오케스트레이터 + 작업자로 동작합니다.
 
 ---
 
@@ -314,8 +387,8 @@ bash ~/.claude/skills/cli-agent-team/scripts/setup.sh --status
 | Git + Bash | **필수** | 버전 관리, 스크립트 실행 |
 | Node.js | 선택 (agy 사용 시) | Windows pty-bridge |
 | jq | 선택 | 적응형 스코어링, daily-review |
-| codex CLI | 선택 | 외부 코딩 에이전트 |
-| agy CLI | 선택 | 외부 코딩 에이전트 |
+| [codex CLI](https://github.com/openai/codex) | 선택 | OpenAI Codex — GPT-4o 기반 터미널 코딩 에이전트 |
+| [agy CLI](https://github.com/antigravity-dev/agy) | 선택 | Antigravity — Google 개발 Gemini 기반 코딩 에이전트 |
 
 ---
 
@@ -349,6 +422,7 @@ bash ~/.claude/skills/cli-agent-team/scripts/setup.sh --status
 |------|------|
 | [Install Guide](docs/install-guide.md) | 단계별 설치 및 검증 |
 | [Quickstart](docs/quickstart.md) | 5분 안에 첫 태스크 실행 |
+| [**E2E Walkthrough**](docs/walkthrough.md) | 처음부터 끝까지 실제 예시 (출력 포함) |
 | [Skills Overview](docs/skills-overview.md) | 스킬별 사용법과 예시 |
 | [cli-agent-team Guide](docs/cli-agent-team-guide.md) | 전체 다중 에이전트 워크플로우 |
 | [Architecture](docs/architecture.md) | 내부 동작 기술 문서 (기여자용) |
@@ -514,6 +588,7 @@ bash ~/.claude/skills/cli-agent-team/scripts/dashboard.sh --watch
 |------|------|
 | [설치 가이드](docs/install-guide.md) | 단계별 설치 |
 | [빠른 시작](docs/quickstart.md) | 5분 안에 첫 태스크 실행 |
+| [**E2E 워크스루**](docs/walkthrough.md) | 처음부터 끝까지 실제 예시 (터미널 출력 포함) |
 | [스킬 개요](docs/skills-overview.md) | 스킬별 사용법과 예시 |
 | [cli-agent-team 가이드](docs/cli-agent-team-guide.md) | 다중 에이전트 전체 워크플로우 |
 | [아키텍처](docs/architecture.md) | 내부 동작 기술 문서 |

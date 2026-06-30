@@ -22,6 +22,7 @@ DISABLE_AGY=false
 ENABLE_CODEX=false
 ENABLE_AGY=false
 STATUS_ONLY=false
+SKIP_PROBE=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -30,9 +31,10 @@ for arg in "$@"; do
     --enable-codex)  ENABLE_CODEX=true  ;;
     --enable-agy)    ENABLE_AGY=true    ;;
     --status)        STATUS_ONLY=true   ;;
+    --skip-probe)    SKIP_PROBE=true    ;;
     *)
       echo "[setup] 알 수 없는 옵션: $arg" >&2
-      echo "사용법: bash setup.sh [--disable-codex] [--disable-agy] [--enable-codex] [--enable-agy] [--status]" >&2
+      echo "사용법: bash setup.sh [--disable-codex] [--disable-agy] [--enable-codex] [--enable-agy] [--status] [--skip-probe]" >&2
       exit 1
       ;;
   esac
@@ -210,3 +212,31 @@ fi
 echo "완료. 모니터를 시작하려면:"
 echo "  Windows(PowerShell): .\\scripts\\agent-watch.ps1 -Agent codex -AuthMode full"
 echo "  Linux/macOS:         bash scripts/agent-watch.sh codex full"
+
+# ── probe-cli.sh 선택적 실행 ─────────────────────────────────────────────────
+# CI 환경 등 실제 에이전트가 없을 때는 --skip-probe 로 건너뜀
+PROBE_SH="$(cd "$(dirname "$0")" && pwd)/probe-cli.sh"
+
+if [ "$SKIP_PROBE" = true ]; then
+  echo ""
+  echo "[setup] probe 건너뜀 (--skip-probe)"
+elif [ ! -f "$PROBE_SH" ]; then
+  echo ""
+  echo "[setup] probe-cli.sh 없음 — 건너뜀"
+else
+  echo ""
+  echo "$SEP"
+  echo "[setup] 에이전트 실제 동작 검증 (probe)..."
+  echo "  건너뛰려면: bash setup.sh --skip-probe"
+  echo "$SEP"
+  if [ "$CODEX_ENABLED" = true ]; then
+    bash "$PROBE_SH" codex limited "$(pwd)" 2>/dev/null && \
+      echo "[setup] probe codex ✅" || \
+      echo "[setup] probe codex ⚠️  headless 실행 실패 — dispatch.sh 동작을 보장할 수 없습니다"
+  fi
+  if [ "$AGY_ENABLED" = true ]; then
+    bash "$PROBE_SH" agy limited "$(pwd)" 2>/dev/null && \
+      echo "[setup] probe agy ✅" || \
+      echo "[setup] probe agy ⚠️  headless 실행 실패 — pty-bridge 경유 필요할 수 있습니다"
+  fi
+fi
