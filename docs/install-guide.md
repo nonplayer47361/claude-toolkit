@@ -2,6 +2,22 @@
 
 This guide installs `claude-toolkit` skills for Claude Code. Windows PowerShell is the primary path; macOS/Linux commands are included where they differ.
 
+## 0. One-liner Install (Recommended)
+
+Skip cloning entirely — run one command and restart Claude Code.
+
+**Windows:**
+```powershell
+irm https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/scripts/install.ps1 | iex
+```
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/nonplayer47361/claude-toolkit/main/scripts/install.sh | bash
+```
+
+The rest of this guide covers manual installation and advanced setup.
+
 ## 1. Prerequisites
 
 Check the required tools:
