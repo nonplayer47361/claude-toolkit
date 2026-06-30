@@ -1,14 +1,14 @@
 # 5분 안에 첫 태스크 실행하기
 
-관련: [[skills/cli-agent-team/SKILL.md]] | [[PLAN.md]]
+관련: [SKILL.md](../skills/cli-agent-team/SKILL.md) | [전체 가이드](cli-agent-team-guide.md)
 
 ---
 
 ## 전제 조건
 
 - cli-agent-team 스킬 설치됨 (`.\scripts\install-skill.ps1 -SkillName cli-agent-team`)
-- codex 또는 agy CLI 중 하나 이상 설치됨
 - 프로젝트 루트에 git 저장소 존재
+- (선택) codex 또는 agy CLI — 없으면 Claude 단독 모드로 동작
 
 ---
 
@@ -28,9 +28,7 @@ bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh init
 `_agent_reports/T001/TASK.md` 파일을 만든다:
 
 ```markdown
----
 task_type: code_implementation
----
 
 ## 태스크 설명
 README.md 파일에 설치 방법 섹션을 추가하라.
@@ -38,12 +36,13 @@ README.md 파일에 설치 방법 섹션을 추가하라.
 ## 완료 기준 (AC 체크리스트)
 - [ ] ## 설치 방법 섹션이 README.md에 추가됨
 - [ ] npm install 명령어가 포함됨
+- [ ] 허용 파일 외 파일을 건드리지 않았다
 
 ## 허용 파일
 - README.md
 
 ## 완료 증거 파일
-- README.md 수정됨
+- README.md  수정됨
 ```
 
 `task_type` 필드가 있어야 적응형 에이전트 배정이 활성화된다.
@@ -53,7 +52,7 @@ README.md 파일에 설치 방법 섹션을 추가하라.
 ## 3단계 — 에이전트 배정 (1분)
 
 ```bash
-bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 full . execute
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 limited "$(pwd)" execute
 ```
 
 Claude Code 채팅에서도 가능:
@@ -67,7 +66,10 @@ codex로 T001 태스크를 execute 모드로 배정해줘
 |----------|------------|
 | `codex`  | 코드 버그 수정, 짧은 구현, 진단 |
 | `agy`    | 복잡한 구현, 리팩토링, 문서 작성 |
-| `auto`   | `.agent_scores.json` 기반 자동 선택 |
+| `auto`   | `.agent_scores.json` 기반 자동 선택 (데이터 5건 이상 필요) |
+
+> `limited` 모드: 에이전트가 파일 변경 전 승인을 요청한다 (권장).  
+> `full` 모드: 승인 없이 자동 실행 — 신뢰된 환경에서만 사용.
 
 ---
 
@@ -101,7 +103,7 @@ git commit -m "feat: T001 — README 설치 방법 추가"
 `_agent_reports/T001/FEEDBACK.md`를 작성한 뒤:
 
 ```bash
-bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 full . feedback
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 limited "$(pwd)" feedback
 ```
 
 ---
@@ -109,22 +111,29 @@ bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 f
 ## 자주 쓰는 명령어
 
 ```bash
-AGENT_TEAM="bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh"
+# 셸 함수로 등록하면 편리하다 (선택)
+agent_team() { bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh "$@"; }
 
 # 환경 진단
-$AGENT_TEAM doctor
+agent_team doctor
 
 # 태스크 상태 대시보드
-$AGENT_TEAM dashboard
+agent_team dashboard
 
 # 두 에이전트 독립 리뷰 후 통합 결정
-$AGENT_TEAM cross-review T001 full
+agent_team cross-review T001 limited "$(pwd)"
 
 # 병렬 실행 안전성 체크
-$AGENT_TEAM parallel-check T001 T002
+agent_team parallel-check T001 T002 "$(pwd)"
 
 # 점수 수동 기록
-$AGENT_TEAM score codex code_implementation 3 0
+agent_team score codex code_implementation 3 0
+```
+
+셸 함수가 싫다면 직접 경로로 호출해도 된다:
+
+```bash
+bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh doctor
 ```
 
 ---
