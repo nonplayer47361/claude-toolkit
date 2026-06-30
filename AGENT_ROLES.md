@@ -1,7 +1,7 @@
 # AGENT_ROLES.md — claude-toolkit 개선 작업
 
 > 프로젝트: claude-toolkit 자체 버그 픽스 + 기능 강화
-> 개선 계획 출처: docs/improvement-plan.md
+> 개선 계획 출처: docs/internal/improvement-plan.md
 > 권한 수준: **완전자율** (사용자 명시 확인 2026-06-28)
 > 근거: verify.sh로 스코프·AC 자동 검증, git diff로 최종 확인 후 Claude가 직접 커밋
 

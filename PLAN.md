@@ -214,7 +214,7 @@ Claude Code용 스킬·에이전트·MCP 서버를 개발하고 배포하는 작
 
 ## M13 — ECC 패턴 적용 + 에이전트 효율 추적 ✅ 완료
 
-> 상세 계획: [[docs/M13-plan.md]] (2026-06-30 codex·agy 피드백 반영 재편)  
+> 상세 계획: docs/internal/M13-plan.md (2026-06-30 codex·agy 피드백 반영 재편)  
 > 참고: https://github.com/affaan-m/ECC
 
 ### 완료

@@ -109,20 +109,22 @@ bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh dispatch codex T001 f
 ## 자주 쓰는 명령어
 
 ```bash
+AGENT_TEAM="bash ~/.claude/skills/cli-agent-team/scripts/agent-team.sh"
+
 # 환경 진단
-agent-team doctor
+$AGENT_TEAM doctor
 
 # 태스크 상태 대시보드
-agent-team dashboard
+$AGENT_TEAM dashboard
 
 # 두 에이전트 독립 리뷰 후 통합 결정
-agent-team cross-review T001 full
+$AGENT_TEAM cross-review T001 full
 
 # 병렬 실행 안전성 체크
-agent-team parallel-check T001 T002
+$AGENT_TEAM parallel-check T001 T002
 
 # 점수 수동 기록
-agent-team score codex code_implementation 3 0
+$AGENT_TEAM score codex code_implementation 3 0
 ```
 
 ---
