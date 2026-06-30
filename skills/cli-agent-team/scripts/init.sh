@@ -261,9 +261,15 @@ if [ -f "$GITIGNORE_FILE" ]; then
     printf "\n# cli-agent-team\n_agent_reports/\n" >> "$GITIGNORE_FILE"
     echo "[init] .gitignore에 _agent_reports/ 추가 완료"
   fi
+  if grep -qF "daily/" "$GITIGNORE_FILE"; then
+    echo "[init] .gitignore: daily/ 이미 존재, 건너뜀"
+  else
+    printf "daily/\n" >> "$GITIGNORE_FILE"
+    echo "[init] .gitignore에 daily/ 추가 완료"
+  fi
 else
-  printf "# cli-agent-team\n_agent_reports/\n" > "$GITIGNORE_FILE"
-  echo "[init] .gitignore 생성 및 _agent_reports/ 추가 완료"
+  printf "# cli-agent-team\n_agent_reports/\ndaily/\n" > "$GITIGNORE_FILE"
+  echo "[init] .gitignore 생성 및 _agent_reports/, daily/ 추가 완료"
 fi
 
 # ── setup.sh 호출 ─────────────────────────────────────────────────────────────

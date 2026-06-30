@@ -229,6 +229,9 @@ if [ "$CLI" = "auto" ]; then
   CLI="$_AUTO_CLI"
 fi
 
+# 최초 선택된 에이전트 보존 — fallback 시 CLI가 덮어써져도 metrics에 원본 에이전트 기록
+_ORIGINAL_CLI="$CLI"
+
 case "$CLI" in
   codex)
     if [ "${CODEX_ENABLED:-true}" = "false" ]; then
@@ -461,7 +464,7 @@ if command -v jq >/dev/null 2>&1; then
   fi
   jq -n \
     --arg  task_id   "${TASK_ID:-unknown}" \
-    --arg  agent     "${CLI:-unknown}" \
+    --arg  agent     "${_ORIGINAL_CLI:-${CLI:-unknown}}" \
     --arg  task_type "${_META_TASK_TYPE:-unknown}" \
     --arg  date      "$(date +%Y-%m-%d)" \
     --argjson elapsed  "${_ELAPSED:-0}" \

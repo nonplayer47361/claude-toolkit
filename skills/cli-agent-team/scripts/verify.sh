@@ -378,6 +378,10 @@ else
         [ -f "${_TASK_DIR_F}/_codex_stdout.log" ] && [ -z "$_AGENT_F" ] && _AGENT_F="codex"
         SCRIPT_DIR_F="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         if [ -n "${_AGENT_F:-}" ] && command -v jq >/dev/null 2>&1; then
+            # 실패 경로: task-dir(6번째 인수) 미전달 — 설계 의도
+            # verify 실패 시 .task_meta.json의 LOC/AC가 아직 업데이트 안됐으므로
+            # 부정확한 데이터를 .agent_metrics.json에 누적하지 않는다.
+            # 실패 패턴은 .agent_scores.json(FAIL_REASON)으로만 추적한다.
             FAIL_REASON="$_FR" bash "${SCRIPT_DIR_F}/record-score.sh" \
                 "$_AGENT_F" "$_TASK_TYPE_F" "0" "0" "$PROJECT_DIR" 2>/dev/null \
                 && echo "  [자동] record-fail: $_AGENT_F / $_TASK_TYPE_F / reason=$_FR" \

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # record-score.sh — 에이전트 태스크 성능 점수 기록 스크립트
-# Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail> [project-dir]
+# Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail> [project-dir] [task-dir]
 # Env  : PROJECT_ROOT=<path> — 프로젝트 루트 경로 (최우선). 미설정 시 5번째 인자 사용,
 #        그마저 없으면 스크립트 위치 기준 ../../.. 을 fallback으로 사용.
 #        FAIL_REASON=<code>  — 실패 원인 코드 (verify.sh가 설정)

@@ -21,8 +21,9 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 if [ ! -f "$METRICS_FILE" ]; then
-  echo "[daily-review] .agent_metrics.json 없음: $METRICS_FILE" >&2
-  exit 1
+  echo "[daily-review] .agent_metrics.json 없음 — 아직 태스크 완료 기록이 없습니다: $METRICS_FILE" >&2
+  echo "[daily-review] dispatch.sh + verify.sh 통과 후 자동 생성됩니다." >&2
+  exit 0
 fi
 
 DAILY_DIR="$PROJECT_DIR/daily"

@@ -78,11 +78,11 @@ fi
 CODEX_BIN=""
 AGY_BIN=""
 
-if which codex 2>/dev/null 1>/dev/null; then
-  CODEX_BIN=$(which codex 2>/dev/null)
+if command -v codex >/dev/null 2>&1; then
+  CODEX_BIN=$(command -v codex)
 fi
-if which agy 2>/dev/null 1>/dev/null; then
-  AGY_BIN=$(which agy 2>/dev/null)
+if command -v agy >/dev/null 2>&1; then
+  AGY_BIN=$(command -v agy)
 fi
 
 # CODEX 활성화 여부 결정
@@ -105,6 +105,48 @@ fi
 
 # ── conf 파일 생성 ────────────────────────────────────────────────────────────
 mkdir -p "_agent_reports"
+
+# ── SHARED_TASK_NOTES.md 생성 (init.sh와 동기화) ──────────────────────────────
+NOTES_FILE="_agent_reports/SHARED_TASK_NOTES.md"
+if [ ! -f "$NOTES_FILE" ]; then
+  cat > "$NOTES_FILE" << 'NOTES_EOF'
+# SHARED_TASK_NOTES.md — 이터레이션 간 컨텍스트 브리지
+# 각 에이전트가 태스크 시작 시 읽고 완료 후 핵심 결정을 추가합니다.
+NOTES_EOF
+  echo "[setup] SHARED_TASK_NOTES.md 생성: $NOTES_FILE"
+fi
+
+# ── AGENTS.md 생성 (init.sh와 동기화) ─────────────────────────────────────────
+AGENTS_FILE="AGENTS.md"
+if [ ! -f "$AGENTS_FILE" ]; then
+  cat > "$AGENTS_FILE" << 'AGENTS_EOF'
+# AGENTS.md — 프로젝트 에이전트 공통 지침
+# Claude Code, Codex, agy 가 프로젝트 시작 시 자동으로 읽습니다.
+
+## 역할
+
+| 에이전트 | 역할 | 작업 범위 |
+|---------|-----|---------|
+| Claude  | 오케스트레이터 (계획·검토·커밋) | 코드 직접 작성 금지 |
+| Codex   | 소~중형 구현 | 1~200줄, 명세 명확한 작업 |
+| agy     | 대형 구현·탐색 | 200줄↑, 분석·탐색 작업 |
+
+## 검증 규칙
+
+- 스크립트 문법 확인: `bash -n <파일>` 만 사용 (직접 실행 금지)
+- 소스 코드 변경: TASK.md `## 허용 파일` 목록만
+- 완료 후 반드시: `_agent_reports/<task-id>/REPORT.md` 작성
+- REPORT.md 내 `## AC 체크리스트` 섹션 필수
+
+## 보안 규칙
+
+- API 키·토큰·패스워드 하드코딩 금지
+- `rm -rf` / `git reset --hard` 사용 전 확인
+- `eval $()` 패턴 금지
+- `chmod 777` 금지
+AGENTS_EOF
+  echo "[setup] AGENTS.md 생성: $AGENTS_FILE"
+fi
 
 # 기존 conf 백업
 if [ -f "$CONF_FILE" ]; then
