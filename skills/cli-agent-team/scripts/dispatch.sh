@@ -94,6 +94,23 @@ append_feedback_history() {
   } >> "$feedback_file"
 }
 
+_extract_tokens() {
+  local log="$1" agent="$2"
+  case "$agent" in
+    codex)
+      grep -A1 -iE "^tokens used$" "$log" 2>/dev/null \
+        | grep -E "^[0-9,]+" | tr -d ',' | tail -1 || \
+      grep -oE "[0-9,]+ tokens" "$log" 2>/dev/null \
+        | grep -oE "^[0-9,]+" | tr -d ',' | tail -1 || echo 0
+      ;;
+    agy)
+      # agy --print 출력에 토큰 패턴 미확인 — 수집 후 별도 패치
+      echo "null"
+      ;;
+    *) echo 0 ;;
+  esac
+}
+
 CLI="${1:?usage: dispatch.sh <cli> <task-id> <auth-mode> [project-dir] [mode] [model-tier]}"
 TASK_ID="${2:?task-id required}"
 AUTH_MODE="${3:?auth-mode required: full|limited}"
@@ -428,4 +445,31 @@ if [ "$CLI" = "agy" ] && [ "$MODE" = "execute" ]; then
       log_error "$TASK_ID" "agy" "empty output, codex fallback 불가"
     fi
   fi
+fi
+
+# ── .task_meta.json 생성 (토큰·시간 추적) ────────────────────────────────────
+if command -v jq >/dev/null 2>&1; then
+  _ELAPSED=$(( $(date +%s 2>/dev/null || echo 0) - ${DISPATCH_START_TS:-0} ))
+  _TOKENS=$(_extract_tokens "${LOG_FILE:-/dev/null}" "${CLI:-unknown}")
+  _META_FILE="${TASK_DIR}/.task_meta.json"
+  _META_TASK_TYPE=$(grep -m1 '^task_type:' "${TASK_FILE:-/dev/null}" 2>/dev/null \
+      | sed 's/^task_type:[[:space:]]*//' | tr -d '[:space:]' || true)
+  _META_TASK_TYPE="${_META_TASK_TYPE%%.*}"
+  _FALLBACK_BOOL="false"
+  if [ "${CLI:-}" = "codex" ] && [ -f "${TASK_DIR}/_codex_fallback.log" ]; then
+    _FALLBACK_BOOL="true"
+  fi
+  jq -n \
+    --arg  task_id   "${TASK_ID:-unknown}" \
+    --arg  agent     "${CLI:-unknown}" \
+    --arg  task_type "${_META_TASK_TYPE:-unknown}" \
+    --arg  date      "$(date +%Y-%m-%d)" \
+    --argjson elapsed  "${_ELAPSED:-0}" \
+    --argjson start_ts "${DISPATCH_START_TS:-0}" \
+    --argjson fallback "$_FALLBACK_BOOL" \
+    --argjson tokens   "${_TOKENS:-0}" \
+    '{task_id:$task_id, agent:$agent, task_type:$task_type, date:$date,
+      started_ts:$start_ts, elapsed_sec:$elapsed, tokens_used:$tokens,
+      loc_added:0, loc_deleted:0, ac_pass:0, ac_fail:0, fallback_used:$fallback
+     }' > "$_META_FILE" 2>/dev/null || true
 fi

@@ -34,8 +34,8 @@ if ! command -v jq &>/dev/null; then
 fi
 
 # ─── 인수 파싱 ───────────────────────────────────────────────────────────────
-if [[ $# -lt 4 ]] || [[ $# -gt 5 ]]; then
-  echo "Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail> [project-dir]" >&2
+if [[ $# -lt 4 ]] || [[ $# -gt 6 ]]; then
+  echo "Usage: bash record-score.sh <agent> <task_type> <ac_pass> <ac_fail> [project-dir] [task-dir]" >&2
   echo "  agent       : agy | codex" >&2
   echo "  task_type   : shell_scripting | documentation | code_implementation | testing | refactoring" >&2
   echo "              | ui_component | styling | api_backend | database | security" >&2
@@ -43,6 +43,7 @@ if [[ $# -lt 4 ]] || [[ $# -gt 5 ]]; then
   echo "  ac_pass     : 통과한 AC 수 (정수)" >&2
   echo "  ac_fail     : 실패한 AC 수 (정수)" >&2
   echo "  project-dir : (선택) 점수 파일 위치 기준 프로젝트 경로" >&2
+  echo "  task-dir    : (선택) _agent_reports/<task-id>/ 경로 — .task_meta.json 읽기 및 .agent_metrics.json 누적" >&2
   exit 1
 fi
 
@@ -58,7 +59,9 @@ elif [[ -n "${5:-}" ]]; then
 else
   PROJECT_ROOT="$_SCRIPT_FALLBACK_ROOT"
 fi
+TASK_DIR_ARG="${6:-}"  # _agent_reports/<task-id>/ 경로 (선택)
 SCORES_FILE="$PROJECT_ROOT/_agent_reports/.agent_scores.json"
+METRICS_FILE="$PROJECT_ROOT/_agent_reports/.agent_metrics.json"
 LOCK_FILE="${SCORES_FILE}.lock"
 LOCK_DIR="${SCORES_FILE}.lockdir"
 _LOCK_MODE=""
@@ -229,3 +232,19 @@ fi
 
 TOTAL_FAILS="$(echo "$UPDATED_JSON" | jq --arg agent "$AGENT" '[.agents[$agent].fail_reasons // {} | to_entries[].value] | add // 0')"
 echo "[scores] ${AGENT} / ${TASK_TYPE}: pass=${NEW_PASS} fail=${NEW_FAIL} total=${NEW_TOTAL} (승률 ${WIN_RATE}%) | 누적 실패유형 합계: ${TOTAL_FAILS}"
+
+# ── .agent_metrics.json 누적 (task-dir 지정 시, .task_meta.json 읽기) ─────────
+if [[ -n "${TASK_DIR_ARG:-}" ]]; then
+  _META_PATH="${TASK_DIR_ARG}/.task_meta.json"
+  if [[ -f "$_META_PATH" ]]; then
+    _META_JSON="$(cat "$_META_PATH")"
+    if [[ ! -f "$METRICS_FILE" ]]; then
+      echo "[]" > "$METRICS_FILE"
+    fi
+    jq --argjson record "$_META_JSON" '. + [$record]' "$METRICS_FILE" \
+      > "${METRICS_FILE}.tmp" 2>/dev/null && \
+      mv "${METRICS_FILE}.tmp" "$METRICS_FILE" || true
+    _MID="$(echo "$_META_JSON" | jq -r '.task_id // "unknown"' 2>/dev/null || echo "unknown")"
+    echo "[metrics] .agent_metrics.json 레코드 추가: ${_MID}"
+  fi
+fi

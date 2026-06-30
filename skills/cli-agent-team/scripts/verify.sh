@@ -300,6 +300,26 @@ echo "[$TASK_ID] 총 실패 항목 수: ${FAILED}"
 if [ "$FAILED" -eq 0 ]; then
     echo "[$TASK_ID] ✅ 전체 검증 통과 — 단계 7(커밋)으로 진행"
 
+    # .task_meta.json LOC + AC 업데이트 (검증 통과 시에만)
+    _META_FILE_V="$PROJECT_DIR/_agent_reports/$TASK_ID/.task_meta.json"
+    if [ -f "$_META_FILE_V" ] && command -v jq >/dev/null 2>&1; then
+        # git diff --numstat: <added>\t<deleted>\t<file> — grep 중간 실패 없이 awk만 사용
+        _LOC_STAT=$(cd "$PROJECT_DIR" && git diff --numstat HEAD 2>/dev/null || true)
+        _LOC_A=$(printf '%s\n' "$_LOC_STAT" | awk '{s+=$1} END{print s+0}')
+        _LOC_D=$(printf '%s\n' "$_LOC_STAT" | awk '{s+=$2} END{print s+0}')
+        _M_AC_PASS=$(awk '/^\s*- \[x\]/{c++} END{print c+0}' "$REPORT_FILE" 2>/dev/null || echo 0)
+        _M_AC_FAIL=$(awk '/^\s*- \[ \]/{c++} END{print c+0}' "$REPORT_FILE" 2>/dev/null || echo 0)
+        jq \
+            --argjson la "${_LOC_A:-0}" \
+            --argjson ld "${_LOC_D:-0}" \
+            --argjson ap "${_M_AC_PASS:-0}" \
+            --argjson af "${_M_AC_FAIL:-0}" \
+            '.loc_added=$la | .loc_deleted=$ld | .ac_pass=$ap | .ac_fail=$af' \
+            "$_META_FILE_V" > "${_META_FILE_V}.tmp" 2>/dev/null && \
+            mv "${_META_FILE_V}.tmp" "$_META_FILE_V" || true
+        echo "  [meta] .task_meta.json 업데이트: loc+${_LOC_A:-0}/-${_LOC_D:-0} ac=${_M_AC_PASS:-0}/${_M_AC_FAIL:-0}"
+    fi
+
     # AC 점수 자동 집계 → record-score.sh 호출 (jq 필요, task_type 인식 시에만)
     _TASK_TYPE=$(grep -m1 '^task_type:' "$TASK_FILE" 2>/dev/null \
         | sed 's/^task_type:[[:space:]]*//' | tr -d '[:space:]' | cut -d. -f1 || true)
@@ -314,7 +334,7 @@ if [ "$FAILED" -eq 0 ]; then
         SCRIPT_DIR_V="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         if [ -n "${_AGENT:-}" ] && command -v jq >/dev/null 2>&1; then
             bash "${SCRIPT_DIR_V}/record-score.sh" "$_AGENT" "$_TASK_TYPE" \
-                "${_AC_PASS:-0}" "${_AC_FAIL:-0}" "$PROJECT_DIR" 2>/dev/null \
+                "${_AC_PASS:-0}" "${_AC_FAIL:-0}" "$PROJECT_DIR" "${_TASK_DIR}" 2>/dev/null \
                 && echo "  [자동] record-score: $_AGENT / $_TASK_TYPE / pass=${_AC_PASS} fail=${_AC_FAIL}" \
                 || echo "  [자동] record-score skip (task_type 불인식 또는 오류)"
         fi
